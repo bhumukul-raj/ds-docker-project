@@ -1,0 +1,137 @@
+# Data Science Development Environment - CPU Version
+# Version: 1.0.0
+# Maintainer: bhumukulraj.ds@gmail.com
+
+# Stage 1: Builder
+FROM ubuntu:22.04 as builder
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive \
+    CONDA_DIR=/opt/conda \
+    PATH=/opt/conda/bin:$PATH \
+    SHELL=/bin/bash \
+    DS_VERSION=1.0.0 \
+    DS_MAINTAINER="bhumukulraj.ds@gmail.com"
+
+# Install system dependencies with retries
+RUN apt-get update && \
+    for i in {1..3}; do \
+        apt-get install -y --no-install-recommends \
+        wget \
+        bzip2 \
+        ca-certificates \
+        git \
+        git-lfs \
+        curl \
+        libarchive-dev && break || \
+        if [ $i -lt 3 ]; then sleep 15; apt-get update; else exit 1; fi; \
+    done && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Miniconda
+RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py39_23.11.0-2-Linux-x86_64.sh -O ~/miniconda.sh && \
+    /bin/bash ~/miniconda.sh -b -p $CONDA_DIR && \
+    rm ~/miniconda.sh && \
+    # Initialize conda for shell interaction
+    $CONDA_DIR/bin/conda init bash && \
+    . $CONDA_DIR/etc/profile.d/conda.sh && \
+    # Install mamba with retries
+    for i in {1..3}; do \
+        $CONDA_DIR/bin/conda install -n base -c conda-forge -y mamba 'conda-libmamba-solver>=23.11.0' && break || sleep 15; \
+    done && \
+    $CONDA_DIR/bin/conda config --set solver libmamba && \
+    # Install notebook package in base environment
+    $CONDA_DIR/bin/conda install -n base -c conda-forge -y notebook && \
+    # Configure conda
+    $CONDA_DIR/bin/conda config --system --set auto_update_conda false && \
+    $CONDA_DIR/bin/conda config --system --set channel_priority flexible && \
+    $CONDA_DIR/bin/conda config --append channels conda-forge
+
+# Copy only CPU environment file
+COPY environments/environment-cpu.yml ./
+
+# Create CPU environment with mamba
+SHELL ["/bin/bash", "--login", "-c"]
+RUN . $CONDA_DIR/etc/profile.d/conda.sh && \
+    # Create CPU environment with retries
+    for i in {1..3}; do \
+        $CONDA_DIR/bin/mamba env create -f environment-cpu.yml && break || sleep 15; \
+    done && \
+    $CONDA_DIR/bin/mamba clean -afy
+
+# Stage 2: Final image
+FROM ubuntu:22.04
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive \
+    CONDA_DIR=/opt/conda \
+    PATH=/opt/conda/bin:$PATH \
+    HOME=/home/ds-user-ds \
+    SHELL=/bin/bash \
+    NB_USER=ds-user-ds \
+    NB_UID=1000
+
+# Install system dependencies and create user with retries
+RUN for i in {1..3}; do \
+        apt-get update && \
+        apt-get install -y --no-install-recommends \
+        curl \
+        git \
+        git-lfs \
+        openssh-client \
+        sudo \
+        libopenblas-dev && break || \
+        if [ $i -lt 3 ]; then sleep 15; else exit 1; fi; \
+    done && \
+    rm -rf /var/lib/apt/lists/* && \
+    useradd -m -s /bin/bash -N -u $NB_UID $NB_USER && \
+    echo "$NB_USER ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/$NB_USER && \
+    chmod 0440 /etc/sudoers.d/$NB_USER && \
+    mkdir -p $CONDA_DIR && \
+    chown -R $NB_USER:users $CONDA_DIR && \
+    mkdir -p /workspace && \
+    chown -R $NB_USER:users /workspace
+
+# Copy conda environments from builder
+COPY --from=builder --chown=$NB_USER:users $CONDA_DIR $CONDA_DIR
+
+# Copy and set up entrypoint
+COPY scripts/docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Switch to non-root user
+USER $NB_USER
+WORKDIR $HOME
+
+# Initialize conda for the user
+SHELL ["/bin/bash", "--login", "-c"]
+RUN conda init bash && \
+    echo "conda activate ds-cpu" >> ~/.bashrc
+
+# Set up Jupyter configuration with password and SSL
+RUN mkdir -p $HOME/.jupyter && \
+    . $CONDA_DIR/etc/profile.d/conda.sh && \
+    conda activate ds-cpu && \
+    # Generate a static password hash for 'jupyter'
+    echo "sha1:23fba5a4321d:72eb5f8e719da91b0ab2c349c3c09fc7df2cb9e7" > $HOME/.jupyter/jupyter_password && \
+    touch $HOME/.jupyter/jupyter_notebook_config.py && \
+    echo "c.NotebookApp.ip = '*'" >> $HOME/.jupyter/jupyter_notebook_config.py && \
+    echo "c.NotebookApp.allow_origin = '*'" >> $HOME/.jupyter/jupyter_notebook_config.py && \
+    echo "c.NotebookApp.password = open('$HOME/.jupyter/jupyter_password').read().strip()" >> $HOME/.jupyter/jupyter_notebook_config.py && \
+    echo "c.NotebookApp.allow_root = False" >> $HOME/.jupyter/jupyter_notebook_config.py && \
+    echo "c.NotebookApp.open_browser = False" >> $HOME/.jupyter/jupyter_notebook_config.py && \
+    echo "c.NotebookApp.notebook_dir = '/workspace'" >> $HOME/.jupyter/jupyter_notebook_config.py && \
+    echo "c.NotebookApp.token = ''" >> $HOME/.jupyter/jupyter_notebook_config.py
+
+# Create workspace directory
+WORKDIR /workspace
+
+# Expose ports
+EXPOSE 8888 5000
+
+# Reset shell to default
+SHELL ["/bin/bash", "-c"]
+
+# Set default command
+ENTRYPOINT ["docker-entrypoint.sh"]
+CMD ["jupyter", "lab"]
