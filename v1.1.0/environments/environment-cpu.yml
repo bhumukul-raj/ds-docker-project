@@ -1,0 +1,42 @@
+name: ds-cpu
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.9
+  # Core Data Science
+  - numpy=1.24.3
+  - pandas=1.5.3
+  - scipy=1.11.2
+  - scikit-learn=1.3.0
+  # Visualization
+  - matplotlib=3.7.2
+  - seaborn=0.12.2
+  - plotly=5.16.1
+  # Machine Learning
+  - xgboost=1.7.6
+  - lightgbm=4.0.0
+  - mlflow=2.6.0
+  # Jupyter Environment
+  - jupyterlab=3.6.5
+  - jupyter_client=7.4.9
+  - jupyter_core=4.12.0
+  - ipykernel=6.22.0
+  - ipywidgets=8.0.7
+  - notebook=6.5.5
+  - jupyter-server-proxy=4.1.0
+  - jupyterlab-git=0.41.0
+  # Development Tools
+  - pip=23.2.1
+  - git-lfs=3.4.0
+  - pre-commit=3.3.3
+  - mypy=1.5.1
+  - flake8=6.1.0
+  - black=23.7.0
+  - isort=5.12.0
+  - pytest=7.4.0
+  # Distributed Computing
+  - dask=2023.3.2
+  - distributed=2023.3.2.1
+  # Node.js for JupyterLab
+  - nodejs=20 

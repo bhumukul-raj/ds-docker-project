@@ -1,0 +1,185 @@
+# Data Science Development Environment - GPU Version
+# Version: 1.1.0
+# Maintainer: bhumukulraj.ds@gmail.com
+
+# Stage 1: Builder
+FROM nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04 as builder
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive \
+    CONDA_DIR=/opt/conda \
+    PATH=/opt/conda/bin:$PATH \
+    SHELL=/bin/bash \
+    DS_VERSION=1.0.0 \
+    DS_MAINTAINER="bhumukulraj.ds@gmail.com"
+
+# Install system dependencies with retries
+RUN apt-get update && \
+    for i in {1..3}; do \
+        apt-get install -y --no-install-recommends \
+        wget \
+        bzip2 \
+        ca-certificates \
+        git \
+        git-lfs \
+        curl \
+        libarchive-dev && break || \
+        if [ $i -lt 3 ]; then sleep 15; apt-get update; else exit 1; fi; \
+    done && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Miniconda and create environment
+COPY environments/environment-gpu.yml ./
+
+# Create GPU environment with mamba in stages
+RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py39_23.11.0-2-Linux-x86_64.sh -O ~/miniconda.sh && \
+    /bin/bash ~/miniconda.sh -b -p $CONDA_DIR && \
+    rm ~/miniconda.sh && \
+    $CONDA_DIR/bin/conda init bash && \
+    . $CONDA_DIR/etc/profile.d/conda.sh && \
+    for i in {1..3}; do \
+        $CONDA_DIR/bin/conda install -n base -c conda-forge -y mamba 'conda-libmamba-solver>=23.11.0' && break || sleep 15; \
+    done && \
+    $CONDA_DIR/bin/conda config --set solver libmamba && \
+    $CONDA_DIR/bin/conda install -n base -c conda-forge -y notebook && \
+    $CONDA_DIR/bin/conda config --system --set auto_update_conda false && \
+    $CONDA_DIR/bin/conda config --system --set channel_priority flexible && \
+    $CONDA_DIR/bin/conda config --append channels conda-forge && \
+    # Create base environment from yml
+    $CONDA_DIR/bin/mamba env create -f environment-gpu.yml && \
+    . $CONDA_DIR/etc/profile.d/conda.sh && \
+    conda activate ds-gpu && \
+    # Install Node.js and npm for JupyterLab extensions
+    mamba install -y -c conda-forge nodejs=20 && \
+    # Ensure jupyter server packages are installed correctly
+    pip install --no-cache-dir jupyter-server==2.7.0 jupyter-server-terminals==0.4.4 && \
+    # Install compatible version of jupyterlab_pygments first
+    pip install --no-cache-dir jupyterlab_pygments==0.2.2 && \
+    # Group 1: Core tools
+    pip install --no-cache-dir \
+        databricks-cli==0.18.0 \
+        opencv-python-headless==4.8.0.76 \
+        wandb==0.15.8 && \
+    # Group 2: JupyterLab core extensions
+    pip install --no-cache-dir \
+        jupyter-resource-usage==0.6.0 \
+        jupyterlab-system-monitor==0.8.0 && \
+    # Group 3: Documentation
+    pip install --no-cache-dir nbconvert==7.2.9 && \
+    # Group 4: LSP
+    pip install --no-cache-dir \
+        "python-lsp-server[all]==1.7.4" \
+        jupyterlab-lsp==4.2.0 && \
+    # Group 5: JupyterLab extensions (version-compatible)
+    pip install --no-cache-dir \
+        jupyterlab-drawio==0.8.0 \
+        jupyterlab-execute-time==2.3.1 \
+        lckr-jupyterlab-variableinspector==3.0.9 && \
+    # Group 6: Code quality
+    pip install --no-cache-dir \
+        jupyterlab-code-formatter==1.5.3 \
+        jupyterlab-spellchecker==0.7.3 && \
+    # Group 7: Additional functionality
+    pip install --no-cache-dir \
+        jupyterlab-latex==3.1.0 \
+        jupyterlab-dash==0.1.0a3 && \
+    # Group 8: GPU-specific packages
+    pip install --no-cache-dir \
+        --extra-index-url https://download.pytorch.org/whl/cu118 \
+        torch==2.0.1 \
+        torchvision==0.15.2 \
+        torchaudio==2.0.2 \
+        tensorflow==2.13.0 \
+        cupy-cuda11x==12.2.0 \
+        nvidia-ml-py && \
+    # Group 7: MLflow and related packages
+    pip install --no-cache-dir \
+        typing_extensions>=4.7.0 \
+        mlflow==2.8.1 && \
+    # Build JupyterLab with all extensions
+    jupyter lab build --minimize=False --dev-build=False && \
+    # Clean up
+    $CONDA_DIR/bin/mamba clean -afy && \
+    npm cache clean --force && \
+    rm -rf /home/ds-user-ds/.cache/yarn && \
+    find /opt/conda/ -type f,l -name '*.a' -delete && \
+    find /opt/conda/ -type f,l -name '*.js.map' -delete && \
+    find /opt/conda/ -type f,l -name '*.pyc' -delete && \
+    find /opt/conda/ -type f,l -name '*.js.map' -delete
+
+# Stage 2: Final image
+FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive \
+    CONDA_DIR=/opt/conda \
+    PATH=/opt/conda/bin:$PATH \
+    HOME=/home/ds-user-ds \
+    SHELL=/bin/bash \
+    NB_USER=ds-user-ds \
+    NB_UID=1000
+
+# Install system dependencies and create user with retries
+RUN for i in {1..3}; do \
+        apt-get update && \
+        apt-get install -y --no-install-recommends \
+        curl \
+        git \
+        git-lfs \
+        openssh-client \
+        sudo \
+        libopenblas-dev && break || \
+        if [ $i -lt 3 ]; then sleep 15; else exit 1; fi; \
+    done && \
+    rm -rf /var/lib/apt/lists/* && \
+    useradd -m -s /bin/bash -N -u $NB_UID $NB_USER && \
+    echo "$NB_USER ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/$NB_USER && \
+    chmod 0440 /etc/sudoers.d/$NB_USER && \
+    mkdir -p $CONDA_DIR && \
+    chown -R $NB_USER:users $CONDA_DIR && \
+    mkdir -p /workspace && \
+    chown -R $NB_USER:users /workspace
+
+# Copy conda environments from builder
+COPY --from=builder --chown=$NB_USER:users $CONDA_DIR $CONDA_DIR
+
+# Copy and set up entrypoint
+COPY scripts/docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Switch to non-root user
+USER $NB_USER
+WORKDIR $HOME
+
+# Initialize conda for the user
+SHELL ["/bin/bash", "--login", "-c"]
+RUN conda init bash && \
+    echo "conda activate ds-gpu" >> ~/.bashrc
+
+# Set up Jupyter configuration with password and SSL
+RUN mkdir -p $HOME/.jupyter && \
+    . $CONDA_DIR/etc/profile.d/conda.sh && \
+    conda activate ds-gpu && \
+    # Generate a static password hash for 'jupyter'
+    echo "sha1:23fba5a4321d:72eb5f8e719da91b0ab2c349c3c09fc7df2cb9e7" > $HOME/.jupyter/jupyter_password && \
+    touch $HOME/.jupyter/jupyter_notebook_config.py && \
+    echo "c.NotebookApp.ip = '*'" >> $HOME/.jupyter/jupyter_notebook_config.py && \
+    echo "c.NotebookApp.allow_origin = '*'" >> $HOME/.jupyter/jupyter_notebook_config.py && \
+    echo "c.NotebookApp.password = open('$HOME/.jupyter/jupyter_password').read().strip()" >> $HOME/.jupyter/jupyter_notebook_config.py && \
+    echo "c.NotebookApp.allow_root = False" >> $HOME/.jupyter/jupyter_notebook_config.py && \
+    echo "c.NotebookApp.open_browser = False" >> $HOME/.jupyter/jupyter_notebook_config.py && \
+    echo "c.NotebookApp.notebook_dir = '/workspace'" >> $HOME/.jupyter/jupyter_notebook_config.py && \
+    echo "c.NotebookApp.token = ''" >> $HOME/.jupyter/jupyter_notebook_config.py
+
+# Create workspace directory
+WORKDIR /workspace
+
+# Expose ports
+EXPOSE 8888 5000
+
+# Reset shell to default
+SHELL ["/bin/bash", "-c"]
+
+# Set default command
+ENTRYPOINT ["docker-entrypoint.sh"]
+CMD ["jupyter", "lab"] 
