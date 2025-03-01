@@ -1,6 +1,6 @@
 # Data Science Docker Environment
 
-Version: 1.0.0  
+Version: 1.0  
 Maintainer: bhumukulraj.ds@gmail.com
 
 This repository contains a secure and optimized Docker setup for data science projects with separate CPU and GPU environments.
@@ -17,11 +17,11 @@ Official images are available on Docker Hub:
 
 ```bash
 # CPU Version
-docker pull bhumukulrajds/ds-workspace-cpu:1.0.0
+docker pull bhumukulrajds/ds-workspace-cpu:1.0
 docker pull bhumukulrajds/ds-workspace-cpu:latest
 
 # GPU Version
-docker pull bhumukulrajds/ds-workspace-gpu:1.0.0
+docker pull bhumukulrajds/ds-workspace-gpu:1.0
 docker pull bhumukulrajds/ds-workspace-gpu:latest
 ```
 

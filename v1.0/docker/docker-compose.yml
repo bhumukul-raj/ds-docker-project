@@ -28,11 +28,11 @@ services:
           cpu-quota: 900000    # 9 CPUs (100000 = 1 CPU)
           memory: 12G          # 12GB RAM for build (75% of 16GB)
           swap: 2G             # 2GB swap
-    image: ds-workspace-cpu:1.0.0
+    image: ds-workspace-cpu:1.0
     container_name: ds-workspace-cpu
     labels:
       maintainer: "bhumukulraj.ds@gmail.com"
-      version: "1.0.0"
+      version: "1.0"
       description: "Data Science Development Environment - CPU Version"
     deploy:
       resources:
@@ -73,7 +73,7 @@ services:
     restart: unless-stopped
 
   jupyter-gpu:
-    image: ds-workspace-gpu:1.0.0
+    image: ds-workspace-gpu:1.0
     build:
       context: ..
       dockerfile: docker/Dockerfile.gpu

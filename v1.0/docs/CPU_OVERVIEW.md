@@ -9,7 +9,7 @@ The CPU version of our Data Science environment is optimized for general data sc
 - **Base Image**: ubuntu:22.04
 - **Image Name**: bhumukulrajds/ds-workspace-cpu
 - **Tags**: 
-  - `1.0.0` - Stable release
+  - `1.0` - Stable release
   - `latest` - Most recent version
 
 ## Resource Requirements
@@ -30,7 +30,7 @@ The CPU version of our Data Science environment is optimized for general data sc
 ### Option 1: Using Docker Compose (if available)
 ```bash
 # Pull the image
-docker pull bhumukulrajds/ds-workspace-cpu:1.0.0
+docker pull bhumukulrajds/ds-workspace-cpu:1.0
 
 # Start the container
 docker compose -f docker/docker-compose.yml --env-file .env up -d jupyter-cpu
@@ -52,7 +52,7 @@ docker run -d \
   -v ~/Desktop/dsi-host-workspace/datasets:/workspace/datasets \
   -v ~/Desktop/dsi-host-workspace/mlflow:/workspace/mlflow \
   -v ~/Desktop/dsi-host-workspace/logs/jupyter:/var/log/jupyter \
-  bhumukulrajds/ds-workspace-cpu:1.0.0
+  bhumukulrajds/ds-workspace-cpu:1.0
 ```
 
 ### Option 3: Using Startup Script
@@ -77,7 +77,7 @@ docker run -d \
     -v ${HOST_DIR}/datasets:/workspace/datasets \
     -v ${HOST_DIR}/mlflow:/workspace/mlflow \
     -v ${HOST_DIR}/logs/jupyter:/var/log/jupyter \
-    bhumukulrajds/ds-workspace-cpu:1.0.0
+    bhumukulrajds/ds-workspace-cpu:1.0
 
 echo "CPU version started at http://localhost:8888"
 echo "MLflow available at http://localhost:5000"
@@ -222,7 +222,7 @@ docker run -d \
   -v ~/Desktop/dsi-host-workspace/datasets:/workspace/datasets \
   -v ~/Desktop/dsi-host-workspace/mlflow:/workspace/mlflow \
   -v ~/Desktop/dsi-host-workspace/logs/jupyter:/var/log/jupyter \
-  bhumukulrajds/ds-workspace-cpu:1.0.0
+  bhumukulrajds/ds-workspace-cpu:1.0
 ```
 
 ### Resource Monitoring

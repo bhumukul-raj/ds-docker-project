@@ -26,11 +26,12 @@ services:
           cpu-quota: 900000    # 9 CPUs (100000 = 1 CPU)
           memory: 12G          # 12GB RAM for build (75% of 16GB)
           swap: 2G             # 2GB swap
-    image: ds-workspace-cpu:1.1.0
+    image: ds-workspace-cpu:1.2
     container_name: ds-workspace-cpu
+    network_mode: host
     labels:
       maintainer: "bhumukulraj.ds@gmail.com"
-      version: "1.0.0"
+      version: "1.2"
       description: "Data Science Development Environment - CPU Version"
     deploy:
       resources:
@@ -56,9 +57,11 @@ services:
       - type: bind
         source: /home/${USER}/Desktop/dsi-host-workspace/logs
         target: /workspace/logs
+      - type: bind
+        source: ${HOST_WORKSPACE_DIR}/config/jupyter
+        target: /home/ds-user-ds/.jupyter
     environment:
       - USE_GPU=false
-      - JUPYTER_PASSWORD=${JUPYTER_PASSWORD:?JUPYTER_PASSWORD must be set}
       - TZ=${TZ:-UTC}
       - MLFLOW_TRACKING_URI=sqlite:///workspace/mlflow/db/mlflow.db
       - MLFLOW_BACKEND_STORE_URI=sqlite:///workspace/mlflow/db/mlflow.db
@@ -78,7 +81,7 @@ services:
     restart: unless-stopped
 
   jupyter-gpu:
-    image: ds-workspace-gpu:1.1.0
+    image: ds-workspace-gpu:1.2
     build:
       context: ..
       dockerfile: docker/Dockerfile.gpu
@@ -99,7 +102,7 @@ services:
     runtime: nvidia
     labels:
       maintainer: "bhumukulraj.ds@gmail.com"
-      version: "1.0.0"
+      version: "1.2"
       description: "Data Science Development Environment - GPU Version"
     deploy:
       resources:
@@ -126,9 +129,11 @@ services:
         source: /home/${USER}/Desktop/dsi-host-workspace/logs
         target: /workspace/logs
       - /tmp/.X11-unix:/tmp/.X11-unix:ro  # For GUI applications
+      - type: bind
+        source: ${HOST_WORKSPACE_DIR}/config/jupyter
+        target: /home/ds-user-ds/.jupyter
     environment:
       - USE_GPU=true
-      - JUPYTER_PASSWORD=${JUPYTER_PASSWORD:?JUPYTER_PASSWORD must be set}
       - TZ=${TZ:-UTC}
       - MLFLOW_TRACKING_URI=sqlite:///workspace/mlflow/db/mlflow.db
       - MLFLOW_BACKEND_STORE_URI=sqlite:///workspace/mlflow/db/mlflow.db

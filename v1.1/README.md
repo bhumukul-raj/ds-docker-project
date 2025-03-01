@@ -1,4 +1,4 @@
-# Data Science Development Environment v1.1.0
+# Data Science Development Environment v1.1
 
 A comprehensive Docker-based development environment for data science, with separate CPU and GPU configurations. This environment provides a complete setup with JupyterLab, MLflow, and essential data science tools.
 

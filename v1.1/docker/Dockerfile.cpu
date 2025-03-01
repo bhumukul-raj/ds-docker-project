@@ -1,9 +1,9 @@
-# Data Science Development Environment - GPU Version
-# Version: 1.1.0
+# Data Science Development Environment - CPU Version
+# Version: 1.1
 # Maintainer: bhumukulraj.ds@gmail.com
 
 # Stage 1: Builder
-FROM nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04 as builder
+FROM ubuntu:22.04 as builder
 
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -29,9 +29,9 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Install Miniconda and create environment
-COPY environments/environment-gpu.yml ./
+COPY environments/environment-cpu.yml ./
 
-# Create GPU environment with mamba in stages
+# Create CPU environment with mamba in stages
 RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py39_23.11.0-2-Linux-x86_64.sh -O ~/miniconda.sh && \
     /bin/bash ~/miniconda.sh -b -p $CONDA_DIR && \
     rm ~/miniconda.sh && \
@@ -46,9 +46,9 @@ RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py39_23.11.0-2-L
     $CONDA_DIR/bin/conda config --system --set channel_priority flexible && \
     $CONDA_DIR/bin/conda config --append channels conda-forge && \
     # Create base environment from yml
-    $CONDA_DIR/bin/mamba env create -f environment-gpu.yml && \
+    $CONDA_DIR/bin/mamba env create -f environment-cpu.yml && \
     . $CONDA_DIR/etc/profile.d/conda.sh && \
-    conda activate ds-gpu && \
+    conda activate ds-cpu && \
     # Install Node.js and npm for JupyterLab extensions
     mamba install -y -c conda-forge nodejs=20 && \
     # Ensure jupyter server packages are installed correctly
@@ -83,19 +83,6 @@ RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py39_23.11.0-2-L
     pip install --no-cache-dir \
         jupyterlab-latex==3.1.0 \
         jupyterlab-dash==0.1.0a3 && \
-    # Group 8: GPU-specific packages
-    pip install --no-cache-dir \
-        --extra-index-url https://download.pytorch.org/whl/cu118 \
-        torch==2.0.1 \
-        torchvision==0.15.2 \
-        torchaudio==2.0.2 \
-        tensorflow==2.13.0 \
-        cupy-cuda11x==12.2.0 \
-        nvidia-ml-py && \
-    # Group 7: MLflow and related packages
-    pip install --no-cache-dir \
-        typing_extensions>=4.7.0 \
-        mlflow==2.8.1 && \
     # Build JupyterLab with all extensions
     jupyter lab build --minimize=False --dev-build=False && \
     # Clean up
@@ -108,7 +95,7 @@ RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py39_23.11.0-2-L
     find /opt/conda/ -type f,l -name '*.js.map' -delete
 
 # Stage 2: Final image
-FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04
+FROM ubuntu:22.04   
 
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -154,12 +141,12 @@ WORKDIR $HOME
 # Initialize conda for the user
 SHELL ["/bin/bash", "--login", "-c"]
 RUN conda init bash && \
-    echo "conda activate ds-gpu" >> ~/.bashrc
+    echo "conda activate ds-cpu" >> ~/.bashrc
 
 # Set up Jupyter configuration with password and SSL
 RUN mkdir -p $HOME/.jupyter && \
     . $CONDA_DIR/etc/profile.d/conda.sh && \
-    conda activate ds-gpu && \
+    conda activate ds-cpu && \
     # Generate a static password hash for 'jupyter'
     echo "sha1:23fba5a4321d:72eb5f8e719da91b0ab2c349c3c09fc7df2cb9e7" > $HOME/.jupyter/jupyter_password && \
     touch $HOME/.jupyter/jupyter_notebook_config.py && \
@@ -182,4 +169,4 @@ SHELL ["/bin/bash", "-c"]
 
 # Set default command
 ENTRYPOINT ["docker-entrypoint.sh"]
-CMD ["jupyter", "lab"] 
+CMD ["jupyter", "lab"]

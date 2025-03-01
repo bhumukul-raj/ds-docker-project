@@ -1,15 +1,14 @@
-# Data Science Development Environment
+# Data Science Development Environment v1.2
 
 A comprehensive Docker-based development environment for data science, with separate CPU and GPU configurations. This environment provides a complete setup with JupyterLab, MLflow, and essential data science tools.
 
-Version: 1.2  
-Maintainer: bhumukulraj.ds@gmail.com
-
-## Quick Links
-- [Docker Hub CPU Image](https://hub.docker.com/r/bhumukulrajds/ds-workspace-cpu)
-- [Docker Hub GPU Image](https://hub.docker.com/r/bhumukulrajds/ds-workspace-gpu)
-- [Documentation](docs/)
-- [Changelog](docs/CHANGELOG.md)
+## Table of Contents
+- [System Requirements](#system-requirements)
+- [Quick Start](#quick-start)
+- [Environment Details](#environment-details)
+- [Usage Guide](#usage-guide)
+- [Troubleshooting](#troubleshooting)
+- [Common Operations](#common-operations)
 
 ## System Requirements
 
@@ -42,7 +41,7 @@ Maintainer: bhumukulraj.ds@gmail.com
 
 ## Quick Start
 
-### 1. Clone and Setup
+### 1. Clone Repository and Setup
 ```bash
 # Clone the repository
 git clone https://github.com/yourusername/ds-docker-project.git
@@ -53,17 +52,21 @@ bash scripts/setup_host.sh
 bash v1.2/scripts/setup_conf.sh
 ```
 
-### 2. Environment Configuration
+### 2. Build Images
 ```bash
-# Configuration files are automatically set up in
-~/Desktop/dsi-host-workspace/config/
+# Build CPU image
+cd ~/Desktop/dsi-host-workspace/config
+docker compose --env-file .env build jupyter-cpu
+
+# Build GPU image (if needed)
+docker compose --env-file .env build jupyter-gpu
 ```
 
 ### 3. Start Containers
 
 #### CPU Version
 ```bash
-cd ~/Desktop/dsi-host-workspace/config
+# Start CPU container
 docker compose --env-file .env up -d jupyter-cpu
 
 # Access at:
@@ -73,12 +76,17 @@ docker compose --env-file .env up -d jupyter-cpu
 
 #### GPU Version
 ```bash
-cd ~/Desktop/dsi-host-workspace/config
+# Start GPU container
 docker compose --env-file .env up -d jupyter-gpu
 
 # Access at:
 # - JupyterLab: http://localhost:8889
 # - MLflow: http://localhost:5001
+```
+
+The Jupyter password can be found in:
+```bash
+cat ~/Desktop/dsi-host-workspace/config/jupyter/jupyter_password.txt
 ```
 
 ## Environment Details
@@ -88,7 +96,7 @@ docker compose --env-file .env up -d jupyter-gpu
 #### CPU Environment
 - Python 3.9
 - JupyterLab 3.6.5
-- MLflow 2.8.1
+- MLflow 2.6.0
 - NumPy 1.24.3
 - Pandas 1.5.3
 - Scikit-learn 1.3.0
@@ -116,7 +124,7 @@ docker compose --env-file .env up -d jupyter-gpu
   - LaTeX support
   - Draw.io integration
 
-## Directory Structure
+### Directory Structure
 ```
 ~/Desktop/dsi-host-workspace/
 ├── config/
@@ -159,7 +167,17 @@ docker compose --env-file .env down
 docker compose --env-file .env stop jupyter-cpu  # or jupyter-gpu
 ```
 
+3. **View Logs:**
+```bash
+# View container logs
+docker logs ds-workspace-cpu  # or ds-workspace-gpu
+
+# View Jupyter logs
+cat ~/Desktop/dsi-host-workspace/logs/jupyter/jupyter.log
+```
+
 ### GPU Support Verification
+
 ```bash
 # Check NVIDIA GPU status
 docker exec ds-workspace-gpu nvidia-smi
@@ -176,13 +194,13 @@ docker exec ds-workspace-gpu bash -c "source /opt/conda/etc/profile.d/conda.sh &
 ### Common Issues and Solutions
 
 1. **Container Fails to Start**
-   - Check container logs: `docker logs ds-workspace-cpu`
+   - Check container logs
    - Verify port availability
-   - Check resource limits in config/.env
+   - Check resource limits
    - Ensure directories exist with correct permissions
 
 2. **GPU Issues**
-   - Verify NVIDIA drivers: `nvidia-smi`
+   - Verify NVIDIA drivers
    - Check NVIDIA Container Toolkit
    - Validate CUDA compatibility
    - Monitor GPU memory usage
@@ -190,7 +208,7 @@ docker exec ds-workspace-gpu bash -c "source /opt/conda/etc/profile.d/conda.sh &
 3. **Access Issues**
    - Confirm ports are not in use
    - Check Jupyter password file
-   - Verify network settings
+   - Verify network mode settings
    - Check container health status
 
 ### Quick Fixes
@@ -218,23 +236,39 @@ bash ~/Desktop/ds-docker-project/scripts/setup_host.sh
 bash ~/Desktop/ds-docker-project/v1.2/scripts/setup_conf.sh
 ```
 
-## Security Features
+## Common Operations
 
-- Non-root user execution
-- Password-protected JupyterLab
-- Read-only mounting of sensitive files
-- Regular security updates
-- Limited port exposure
-- Container resource limits
-- Host-mounted storage for persistence
+### Container Management
+```bash
+# View container status
+docker ps -a
 
-## Support and Contribution
+# View resource usage
+docker stats
 
-For issues, feature requests, or contributions, please:
-1. Check existing issues on the GitHub repository
-2. Create a new issue with detailed information
-3. Follow the contribution guidelines in CONTRIBUTING.md
+# Access container shell
+docker exec -it ds-workspace-cpu bash  # or ds-workspace-gpu
+```
 
-## License
+### Data Management
+```bash
+# Backup workspace
+tar -czf workspace_backup.tar.gz ~/Desktop/dsi-host-workspace
 
-This project is licensed under the MIT License - see the LICENSE file for details. 
+# Restore workspace
+tar -xzf workspace_backup.tar.gz -C ~/Desktop/
+```
+
+### Maintenance
+```bash
+# Clean Docker system
+docker system prune -a
+
+# Update images
+docker compose --env-file .env build --no-cache
+
+# Rotate logs
+find ~/Desktop/dsi-host-workspace/logs -name "*.log" -size +100M -exec rm {} \;
+```
+
+For more information and updates, visit the project repository or contact the maintainer at bhumukulraj.ds@gmail.com. 

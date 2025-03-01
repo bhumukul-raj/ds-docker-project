@@ -9,7 +9,7 @@ The GPU version of our Data Science environment is optimized for deep learning, 
 - **Base Image**: nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04
 - **Image Name**: bhumukulrajds/ds-workspace-gpu
 - **Tags**: 
-  - `1.0.0` - Stable release
+  - `1.0` - Stable release
   - `latest` - Most recent version
 
 ## Resource Requirements
@@ -38,7 +38,7 @@ nvidia-smi
 nvidia-container-cli info
 
 # Pull the image
-docker pull bhumukulrajds/ds-workspace-gpu:1.0.0
+docker pull bhumukulrajds/ds-workspace-gpu:1.0
 
 # Start the container
 docker compose -f docker/docker-compose.yml --env-file .env up -d jupyter-gpu
@@ -70,7 +70,7 @@ docker run -d \
   -v ~/Desktop/dsi-host-workspace/datasets:/workspace/datasets \
   -v ~/Desktop/dsi-host-workspace/mlflow:/workspace/mlflow \
   -v ~/Desktop/dsi-host-workspace/logs/jupyter:/var/log/jupyter \
-  bhumukulrajds/ds-workspace-gpu:1.0.0
+  bhumukulrajds/ds-workspace-gpu:1.0
 ```
 
 ### Option 3: Using Startup Script
@@ -112,7 +112,7 @@ docker run -d \
     -v ${HOST_DIR}/datasets:/workspace/datasets \
     -v ${HOST_DIR}/mlflow:/workspace/mlflow \
     -v ${HOST_DIR}/logs/jupyter:/var/log/jupyter \
-    bhumukulrajds/ds-workspace-gpu:1.0.0
+    bhumukulrajds/ds-workspace-gpu:1.0
 
 echo "GPU version started at http://localhost:8889"
 echo "MLflow available at http://localhost:5001"
@@ -265,7 +265,7 @@ docker run -d \
   -v ~/Desktop/dsi-host-workspace/datasets:/workspace/datasets \
   -v ~/Desktop/dsi-host-workspace/mlflow:/workspace/mlflow \
   -v ~/Desktop/dsi-host-workspace/logs/jupyter:/var/log/jupyter \
-  bhumukulrajds/ds-workspace-gpu:1.0.0
+  bhumukulrajds/ds-workspace-gpu:1.0
 ```
 
 ### Multi-GPU Setup

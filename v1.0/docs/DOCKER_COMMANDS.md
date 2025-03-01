@@ -131,8 +131,8 @@ docker builder prune --filter type=source.local
 ### Specific Resource Removal
 ```bash
 # Remove images
-docker rmi ds-workspace-cpu:1.0.0
-docker rmi ds-workspace-gpu:1.0.0
+docker rmi ds-workspace-cpu:1.0
+docker rmi ds-workspace-gpu:1.0
 docker rmi $(docker images -f "dangling=true" -q)
 
 # Remove containers
