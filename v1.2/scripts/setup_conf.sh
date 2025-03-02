@@ -105,7 +105,7 @@ services:
           cpu-quota: 900000    # 9 CPUs (100000 = 1 CPU)
           memory: 12G          # 12GB RAM for build (75% of 16GB)
           swap: 2G             # 2GB swap
-    image: ds-workspace-cpu:1.2
+    image: bhumukulrajds/ds-workspace-cpu:1.2
     container_name: ds-workspace-cpu
     network_mode: host
     labels:
@@ -160,7 +160,7 @@ services:
     restart: unless-stopped
 
   jupyter-gpu:
-    image: ds-workspace-gpu:1.2
+    image: bhumukulrajds/ds-workspace-gpu:1.2
     build:
       context: ..
       dockerfile: docker/Dockerfile.gpu

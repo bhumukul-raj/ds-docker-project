@@ -2,12 +2,12 @@
 
 ## Overview
 
-The GPU version of our Data Science environment is optimized for deep learning and GPU-accelerated computing tasks. It provides a complete development environment with CUDA support, popular deep learning frameworks, and essential data science tools.
+The GPU version of our Data Science environment is designed for deep learning, computer vision, and other GPU-accelerated workflows. It provides a comprehensive environment with CUDA support and optimized GPU libraries.
 
 ## Image Details
 
 - **Base Image**: nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04
-- **Image Name**: ds-workspace-gpu
+- **Image Name**: bhumukulrajds/ds-workspace-gpu
 - **Version**: 1.2
 - **Python Version**: 3.9
 - **CUDA Version**: 11.8

@@ -6,27 +6,15 @@ set -euo pipefail
 # Function to display script usage
 show_usage() {
     echo "Usage: $0 <new_version> [current_version]"
-    echo "Example: $0 1.1.0 1.0.0"
+    echo "Example: $0 1.1 1.0"
     echo "If current_version is not provided, it will try to detect from existing directories"
 }
 
-# Function to validate semantic version
+# Function to validate version format
 validate_version() {
-    if ! [[ $1 =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-        echo "Error: Version must be in semantic versioning format (e.g., 1.0.0)"
+    if ! [[ $1 =~ ^[0-9]+\.[0-9]+$ ]]; then
+        echo "Error: Version must be in format X.Y (e.g., 1.0)"
         exit 1
-    fi
-}
-
-# Function to update version in file
-update_version() {
-    local file=$1
-    local old_version=$2
-    local new_version=$3
-    
-    if [[ -f "$file" ]]; then
-        sed -i "s/$old_version/$new_version/g" "$file"
-        echo "Updated version in $file"
     fi
 }
 
@@ -59,43 +47,45 @@ echo "Creating new version v$NEW_VERSION from v$CURRENT_VERSION..."
 NEW_DIR="v$NEW_VERSION"
 CURRENT_DIR="v$CURRENT_VERSION"
 
-# Create directory structure
-mkdir -p "$NEW_DIR"/{docker,docs,environments,scripts}
+# Check if current version directory exists
+if [ ! -d "$CURRENT_DIR" ]; then
+    echo "Error: Directory $CURRENT_DIR does not exist"
+    exit 1
+fi
 
-# Copy files with version updates
-echo "Copying and updating files..."
+# Check if new version directory already exists
+if [ -d "$NEW_DIR" ]; then
+    echo "Error: Directory $NEW_DIR already exists"
+    exit 1
+fi
 
-# Copy and update docker files
-cp "$CURRENT_DIR/docker/docker-compose.yml" "$NEW_DIR/docker/"
-cp "$CURRENT_DIR/docker/Dockerfile.cpu" "$NEW_DIR/docker/"
-cp "$CURRENT_DIR/docker/Dockerfile.gpu" "$NEW_DIR/docker/"
+# Copy all files from current version to new version
+echo "Copying files from $CURRENT_DIR to $NEW_DIR..."
+cp -r "$CURRENT_DIR" "$NEW_DIR"
 
-# Copy and update environment files
-cp "$CURRENT_DIR/environments/environment-cpu.yml" "$NEW_DIR/environments/"
-cp "$CURRENT_DIR/environments/environment-gpu.yml" "$NEW_DIR/environments/"
+# Update version numbers in all files
+echo "Updating version numbers in files..."
 
-# Copy and update documentation
-cp "$CURRENT_DIR/docs/"* "$NEW_DIR/docs/"
-cp "$CURRENT_DIR/README.md" "$NEW_DIR/"
+# Update version in Docker files first
+echo "Updating Docker files..."
+find "$NEW_DIR/docker" -type f -name "Dockerfile.*" -exec sed -i "s/Version: $CURRENT_VERSION/Version: $NEW_VERSION/g" {} +
+find "$NEW_DIR/docker" -type f -name "Dockerfile.*" -exec sed -i "s/DS_VERSION=$CURRENT_VERSION/DS_VERSION=$NEW_VERSION/g" {} +
+find "$NEW_DIR/docker" -type f -exec sed -i "s/:$CURRENT_VERSION/:$NEW_VERSION/g" {} +
 
-# Copy scripts
-cp "$CURRENT_DIR/scripts/docker-entrypoint.sh" "$NEW_DIR/scripts/"
-
-# Copy configuration files
-cp "$CURRENT_DIR/.env" "$NEW_DIR/"
-cp "$CURRENT_DIR/.dockerignore" "$NEW_DIR/"
-cp "$CURRENT_DIR/.pre-commit-config.yaml" "$NEW_DIR/"
-
-# Update version numbers in files
+# Update version in other files
 find "$NEW_DIR" -type f -exec sed -i "s/Version: $CURRENT_VERSION/Version: $NEW_VERSION/g" {} +
 find "$NEW_DIR" -type f -exec sed -i "s/version: '$CURRENT_VERSION'/version: '$NEW_VERSION'/g" {} +
-find "$NEW_DIR" -type f -exec sed -i "s/:$CURRENT_VERSION/:$NEW_VERSION/g" {} +
+find "$NEW_DIR" -type f -exec sed -i "s/v$CURRENT_VERSION/v$NEW_VERSION/g" {} +
 
-# Update CHANGELOG.md
-CURRENT_DATE=$(date +%Y-%m-%d)
-NEW_CHANGELOG_ENTRY="## [$NEW_VERSION] - $CURRENT_DATE\n\n### Added\n- \n\n### Changed\n- \n\n### Fixed\n- \n\n### Security\n- \n"
-sed -i "0,/## \[$CURRENT_VERSION\]/s//## [$NEW_VERSION] - $CURRENT_DATE\n\n### Added\n- \n\n### Changed\n- \n\n### Fixed\n- \n\n### Security\n- \n\n## [$CURRENT_VERSION]/" "$NEW_DIR/docs/CHANGELOG.md"
+# Update CHANGELOG.md if it exists
+if [ -f "$NEW_DIR/docs/CHANGELOG.md" ]; then
+    echo "Updating CHANGELOG.md..."
+    CURRENT_DATE=$(date +%Y-%m-%d)
+    NEW_CHANGELOG_ENTRY="## [$NEW_VERSION] - $CURRENT_DATE\n\n### Added\n- \n\n### Changed\n- \n\n### Fixed\n- \n\n### Security\n- \n"
+    sed -i "0,/## \[$CURRENT_VERSION\]/s//## [$NEW_VERSION] - $CURRENT_DATE\n\n### Added\n- \n\n### Changed\n- \n\n### Fixed\n- \n\n### Security\n- \n\n## [$CURRENT_VERSION]/" "$NEW_DIR/docs/CHANGELOG.md"
+fi
 
+# Create version update commit message template
 echo "Creating version update commit message template..."
 cat > version_update_commit_msg.txt << EOF
 Version $NEW_VERSION
@@ -118,13 +108,11 @@ EOF
 echo "New version v$NEW_VERSION has been created!"
 echo "Next steps:"
 echo "1. Review and update the CHANGELOG.md in $NEW_DIR/docs/"
-echo "2. Update version numbers in any additional files if needed"
-echo "3. Review and update dependencies in environment-*.yml files"
-echo "4. Test the new version"
-echo "5. Use version_update_commit_msg.txt as a template for your commit message"
+echo "2. Review and update version numbers in all files"
+echo "3. Test the new version"
+echo "4. Use version_update_commit_msg.txt as a template for your commit message"
 echo ""
 echo "Don't forget to:"
-echo "- Update documentation with any new features or changes"
+echo "- Update documentation with any new features and changes"
 echo "- Test both CPU and GPU environments"
-echo "- Update any version-specific instructions"
-echo "- Review resource limits and requirements" 
+echo "- Update any version-specific instructions" 

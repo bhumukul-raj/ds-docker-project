@@ -67,7 +67,7 @@ cd ~/Desktop/dsi-host-workspace/config
 docker compose --env-file .env up -d jupyter-cpu
 
 # Access at:
-# - JupyterLab: http://localhost:8888
+# - JupyterLab: http://localhost:8888/lab
 # - MLflow: http://localhost:5000
 ```
 
@@ -77,8 +77,8 @@ cd ~/Desktop/dsi-host-workspace/config
 docker compose --env-file .env up -d jupyter-gpu
 
 # Access at:
-# - JupyterLab: http://localhost:8889
-# - MLflow: http://localhost:5001
+# - JupyterLab: http://localhost:8888/lab
+# - MLflow: http://localhost:5000
 ```
 
 ## Environment Details
@@ -88,7 +88,7 @@ docker compose --env-file .env up -d jupyter-gpu
 #### CPU Environment
 - Python 3.9
 - JupyterLab 3.6.5
-- MLflow 2.8.1
+- MLflow 2.6.0
 - NumPy 1.24.3
 - Pandas 1.5.3
 - Scikit-learn 1.3.0
@@ -171,6 +171,24 @@ docker exec ds-workspace-gpu bash -c "source /opt/conda/etc/profile.d/conda.sh &
 docker exec ds-workspace-gpu bash -c "source /opt/conda/etc/profile.d/conda.sh && conda activate ds-gpu && python3 -c 'import tensorflow as tf; print(tf.config.list_physical_devices(\"GPU\"))'"
 ```
 
+### Container Management
+```bash
+# View container status
+docker ps -a
+
+# View resource usage
+docker stats ds-workspace-cpu  # or ds-workspace-gpu
+```
+
+### Viewing Logs
+```bash
+# View container logs
+docker logs ds-workspace-cpu  # or ds-workspace-gpu
+
+# View Jupyter logs
+cat ~/Desktop/dsi-host-workspace/logs/jupyter/jupyter.log
+```
+
 ## Troubleshooting
 
 ### Common Issues and Solutions
@@ -237,4 +255,10 @@ For issues, feature requests, or contributions, please:
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details. 
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Version History
+
+- v1.0: Initial release with basic CPU and GPU support
+- v1.1: Added enhanced monitoring and resource management
+- v1.2: Improved configuration management and security features 

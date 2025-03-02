@@ -57,9 +57,13 @@ bash v1.2/scripts/setup_conf.sh
 # Build CPU image
 cd ~/Desktop/dsi-host-workspace/config
 docker compose --env-file .env build jupyter-cpu
+# Or pull from Docker Hub
+docker pull bhumukulrajds/ds-workspace-cpu:1.2
 
 # Build GPU image (if needed)
 docker compose --env-file .env build jupyter-gpu
+# Or pull from Docker Hub
+docker pull bhumukulrajds/ds-workspace-gpu:1.2
 ```
 
 ### 3. Start Containers
@@ -70,7 +74,7 @@ docker compose --env-file .env build jupyter-gpu
 docker compose --env-file .env up -d jupyter-cpu
 
 # Access at:
-# - JupyterLab: http://localhost:8888
+# - JupyterLab: http://localhost:8888/lab
 # - MLflow: http://localhost:5000
 ```
 
@@ -80,8 +84,8 @@ docker compose --env-file .env up -d jupyter-cpu
 docker compose --env-file .env up -d jupyter-gpu
 
 # Access at:
-# - JupyterLab: http://localhost:8889
-# - MLflow: http://localhost:5001
+# - JupyterLab: http://localhost:8888/lab
+# - MLflow: http://localhost:5000
 ```
 
 The Jupyter password can be found in:
@@ -259,16 +263,94 @@ tar -czf workspace_backup.tar.gz ~/Desktop/dsi-host-workspace
 tar -xzf workspace_backup.tar.gz -C ~/Desktop/
 ```
 
-### Maintenance
+### Maintenance and Cleanup
+
+The environment comes with a comprehensive cleanup script (`scripts/cleanup.sh`) that helps maintain the system's health and performance.
+
+#### Features
+- Automatic cleanup of temporary files
+- Docker resource management
+- Log rotation
+- Automated backups
+- Storage optimization
+- Safety checks and verifications
+
+#### Usage
+
+1. **Basic Cleanup**:
 ```bash
-# Clean Docker system
-docker system prune -a
+# Run standard cleanup
+./scripts/cleanup.sh
 
-# Update images
-docker compose --env-file .env build --no-cache
+# Dry run (preview changes)
+./scripts/cleanup.sh -d
 
-# Rotate logs
-find ~/Desktop/dsi-host-workspace/logs -name "*.log" -size +100M -exec rm {} \;
+# Run with desktop notifications
+./scripts/cleanup.sh -n
 ```
+
+2. **What It Cleans**:
+- Temporary Jupyter and MLflow files
+- Old log files (rotated after 7 days)
+- Unused Docker resources
+- Package caches (pip, conda, npm)
+- Old MLflow runs (>30 days)
+- Compressed old notebooks
+
+3. **Safety Features**:
+- Prerequisite checks
+- Space verification
+- Lock file prevention
+- Backup verification
+- Running container detection
+- Non-root user verification
+
+4. **Configuration**:
+Create `~/Desktop/dsi-host-workspace/config/cleanup.conf` to customize:
+```bash
+# Example configuration
+BACKUP_RETENTION_DAYS=14    # Default: 7
+LOG_RETENTION_DAYS=30       # Default: 30
+REQUIRED_SPACE=10          # Default: 5GB
+```
+
+5. **Backup Management**:
+- Automatic daily backups
+- MLflow database backup
+- Project notebooks backup
+- 7-day backup retention
+- Backup verification
+
+6. **Storage Optimization**:
+- Disk usage monitoring
+- Old notebook compression
+- MLflow database optimization
+- Docker cache management
+- Unused resource cleanup
+
+7. **Error Handling**:
+- Detailed error logging
+- Automatic recovery attempts
+- Failure notifications
+- Progress reporting
+- Color-coded output
+
+#### Scheduling Cleanup
+
+To run cleanup automatically, add to crontab:
+```bash
+# Edit crontab
+crontab -e
+
+# Run daily at 2 AM
+0 2 * * * /home/bhumukul-raj/Desktop/ds-docker-project/v1.2/scripts/cleanup.sh -n
+```
+
+#### Best Practices
+1. Run cleanup during low-activity periods
+2. Always run with `-d` first to preview changes
+3. Keep at least 10GB free space
+4. Monitor cleanup logs regularly
+5. Verify backups periodically
 
 For more information and updates, visit the project repository or contact the maintainer at bhumukulraj.ds@gmail.com. 

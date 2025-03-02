@@ -7,7 +7,7 @@ The CPU version of our Data Science environment is designed for general data sci
 ## Image Details
 
 - **Base Image**: ubuntu:22.04
-- **Image Name**: ds-workspace-cpu
+- **Image Name**: bhumukulrajds/ds-workspace-cpu
 - **Version**: 1.2
 - **Python Version**: 3.9
 - **Build Optimization**: OpenBLAS
