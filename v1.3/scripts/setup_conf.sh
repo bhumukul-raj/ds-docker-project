@@ -77,9 +77,112 @@ generate_docker_compose() {
     log "Generating docker-compose.yml..."
     
     cat > "$compose_file" << 'EOL'
-#--------------------------------------
-here add the docker-compose file
-#--------------------------------------
+version: '3.8'
+
+x-bake:
+  args:
+    BUILDKIT_INLINE_CACHE: 1
+  resources:
+    memory: 12g
+    swap: 2g
+    cpus: 9
+    cpu-quota: 900000
+
+services:
+  jupyter-cpu:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.cpu
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+        NB_UID: ${UID:-1000}
+        NB_GID: ${GID:-1000}
+    image: bhumukulrajds/ds-workspace-cpu:1.3
+    container_name: ds-workspace-cpu
+    network_mode: host
+    deploy:
+      resources:
+        limits:
+          cpus: '9'
+          memory: ${CONTAINER_MEMORY_LIMIT:-12}G
+        reservations:
+          cpus: '2'
+          memory: ${CONTAINER_MEMORY_RESERVATION:-4}G
+    ports:
+      - "8888:8888"
+    volumes:
+      - type: bind
+        source: ${HOST_WORKSPACE_DIR}/projects
+        target: /workspace/projects
+      - type: bind
+        source: ${HOST_WORKSPACE_DIR}/datasets
+        target: /workspace/datasets
+      - type: bind
+        source: ${HOST_WORKSPACE_DIR}/logs
+        target: /workspace/logs
+      - type: bind
+        source: ${HOST_WORKSPACE_DIR}/config/jupyter
+        target: /home/ds-user-ds/.jupyter
+    environment:
+      - USE_GPU=false
+      - TZ=${TZ:-UTC}
+    user: "${UID:-1000}:${GID:-1000}"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/api/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  jupyter-gpu:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.gpu
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+        NB_UID: ${UID:-1000}
+        NB_GID: ${GID:-1000}
+    image: bhumukulrajds/ds-workspace-gpu:1.3
+    container_name: ds-workspace-gpu
+    runtime: nvidia
+    deploy:
+      resources:
+        limits:
+          cpus: '9'
+          memory: ${CONTAINER_MEMORY_LIMIT:-12}G
+        reservations:
+          cpus: '2'
+          memory: ${CONTAINER_MEMORY_RESERVATION:-4}G
+    ports:
+      - "8889:8888"
+    volumes:
+      - type: bind
+        source: ${HOST_WORKSPACE_DIR}/projects
+        target: /workspace/projects
+      - type: bind
+        source: ${HOST_WORKSPACE_DIR}/datasets
+        target: /workspace/datasets
+      - type: bind
+        source: ${HOST_WORKSPACE_DIR}/logs
+        target: /workspace/logs
+      - type: bind
+        source: ${HOST_WORKSPACE_DIR}/config/jupyter
+        target: /home/ds-user-ds/.jupyter
+    environment:
+      - USE_GPU=true
+      - TZ=${TZ:-UTC}
+      - NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES:-0}
+      - NVIDIA_DRIVER_CAPABILITIES=${NVIDIA_DRIVER_CAPABILITIES:-compute,utility,graphics,display}
+      - NVIDIA_REQUIRE_CUDA=${NVIDIA_REQUIRE_CUDA:-"cuda>=11.8"}
+      - NVIDIA_MEM_MAX_PERCENT=${NVIDIA_MEM_MAX_PERCENT:-75}
+      - NVIDIA_GPU_MEM_FRACTION=${NVIDIA_GPU_MEM_FRACTION:-0.75}
+    user: "${UID:-1000}:${GID:-1000}"
+    healthcheck:
+      test: ["CMD", "nvidia-smi && curl -f http://localhost:8888/api/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
 EOL
     
     log "docker-compose.yml generated successfully at: $compose_file"
@@ -95,12 +198,31 @@ generate_env_file() {
     log "Generating .env file..."
     
     cat > "$env_file" << EOL
-#---------------------------------------
-here add the env file
-# User configuration - Use current user's UID and GID
-#UID=${current_uid}
-#GID=${current_gid}
-#---------------------------------------
+# Required environment variables
+# Host workspace directory (use absolute path)
+HOST_WORKSPACE_DIR=${WORKSPACE_DIR}
+
+# User configuration (use current user's UID/GID)
+UID=${current_uid}
+GID=${current_gid}
+
+# Optional environment variables
+# Timezone configuration
+TZ=UTC
+
+# Container configuration
+COMPOSE_PROJECT_NAME=ds-workspace-v1
+
+# Resource limits (in GB)
+CONTAINER_MEMORY_LIMIT=12
+CONTAINER_MEMORY_RESERVATION=4
+
+# NVIDIA Configuration (for GPU container)
+NVIDIA_VISIBLE_DEVICES=0
+NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics,display
+NVIDIA_REQUIRE_CUDA=cuda>=11.8
+NVIDIA_MEM_MAX_PERCENT=75
+NVIDIA_GPU_MEM_FRACTION=0.75
 EOL
     
     log ".env file generated successfully at: $env_file"

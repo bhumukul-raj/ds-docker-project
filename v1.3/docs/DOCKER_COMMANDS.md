@@ -1,36 +1,33 @@
 # Docker Commands Reference
 
-This document provides a comprehensive list of Docker commands used in this project.
-
 ## Build Commands
 
-### Basic Build
+### BuildKit Configuration
 ```bash
-# Build CPU version
-docker compose --env-file .env build jupyter-cpu
+# Enable BuildKit
+export DOCKER_BUILDKIT=1
 
-# Build GPU version
-docker compose --env-file .env build jupyter-gpu
+# Configure BuildKit settings
+export BUILDKIT_PROGRESS=plain
+export BUILDKIT_STEP_LOG_MAX_SIZE=10485760
 ```
 
-### Optimized Build (Recommended)
+### Build Images
 ```bash
-# Build with BuildKit and detailed logging
-DOCKER_BUILDKIT=1 \
-BUILDKIT_PROGRESS=plain \
-BUILDKIT_STEP_LOG_MAX_SIZE=10485760 \
-BUILDKIT_STEP_LOG_MAX_SPEED=10485760 \
-COMPOSE_DOCKER_CLI_BUILD=1 \
-docker compose --env-file .env \
-              --verbose \
-              build \
-              --progress=plain \
-              --pull \
-              jupyter-cpu  # or jupyter-gpu
+# Build CPU image
+docker compose --env-file .env build jupyter-cpu
 
-# Build with compose bake (Alternative)
-COMPOSE_BAKE=true \
-docker compose --env-file .env build
+# Build GPU image
+docker compose --env-file .env build jupyter-gpu
+
+# Build with no cache
+docker compose --env-file .env build --no-cache jupyter-cpu
+docker compose --env-file .env build --no-cache jupyter-gpu
+
+# Build with BuildKit cache
+docker compose --env-file .env build \
+  --build-arg BUILDKIT_INLINE_CACHE=1 \
+  jupyter-cpu
 ```
 
 ## Container Management
@@ -43,14 +40,8 @@ docker compose --env-file .env up -d jupyter-cpu
 # Start GPU container
 docker compose --env-file .env up -d jupyter-gpu
 
-# Start with resource limits
-CONTAINER_MEMORY_LIMIT=12G \
-CONTAINER_MEMORY_RESERVATION=4G \
-docker compose --env-file .env up -d jupyter-gpu
-
-# Start with specific CUDA device
-NVIDIA_VISIBLE_DEVICES=0 \
-docker compose --env-file .env up -d jupyter-gpu
+# Start both containers
+docker compose --env-file .env up -d
 ```
 
 ### Stop Containers
@@ -62,11 +53,269 @@ docker compose --env-file .env stop jupyter-cpu
 docker compose --env-file .env stop jupyter-gpu
 
 # Stop all containers
-docker compose --env-file .env stop
-
-# Stop and remove containers
 docker compose --env-file .env down
 ```
+
+### Container Status
+```bash
+# List running containers
+docker ps | grep ds-workspace
+
+# View container details
+docker inspect ds-workspace-cpu
+docker inspect ds-workspace-gpu
+
+# Check container health
+docker inspect --format='{{.State.Health.Status}}' ds-workspace-cpu
+docker inspect --format='{{.State.Health.Status}}' ds-workspace-gpu
+```
+
+## Resource Management
+
+### CPU Container
+```bash
+# View CPU usage
+docker stats ds-workspace-cpu
+
+# Adjust CPU limits
+docker update --cpus=4 --cpu-shares=1024 ds-workspace-cpu
+
+# View process list
+docker top ds-workspace-cpu
+```
+
+### GPU Container
+```bash
+# View GPU status
+nvidia-smi
+
+# Monitor GPU usage
+watch -n 1 nvidia-smi
+
+# View GPU metrics
+docker exec ds-workspace-gpu nvidia-smi --query-gpu=utilization.gpu,memory.used,memory.free,temperature.gpu --format=csv
+
+# Check CUDA
+docker exec ds-workspace-gpu nvidia-smi -L
+```
+
+### Memory Management
+```bash
+# View memory usage
+docker stats ds-workspace-cpu ds-workspace-gpu
+
+# Adjust memory limits
+docker update --memory=10G --memory-reservation=3G ds-workspace-cpu
+docker update --memory=12G --memory-reservation=4G ds-workspace-gpu
+```
+
+## Logging and Monitoring
+
+### Container Logs
+```bash
+# View container logs
+docker logs -f ds-workspace-cpu
+docker logs -f ds-workspace-gpu
+
+# View last N lines
+docker logs --tail=100 ds-workspace-cpu
+docker logs --tail=100 ds-workspace-gpu
+
+# View logs with timestamps
+docker logs -f --timestamps ds-workspace-cpu
+```
+
+### Health Checks
+```bash
+# View health check logs
+docker inspect --format='{{json .State.Health}}' ds-workspace-cpu | jq
+docker inspect --format='{{json .State.Health}}' ds-workspace-gpu | jq
+
+# Monitor health status
+watch -n 5 'docker inspect --format="{{.State.Health.Status}}" ds-workspace-cpu'
+```
+
+### Resource Monitoring
+```bash
+# Monitor all containers
+docker stats
+
+# Monitor specific container
+docker stats ds-workspace-cpu
+
+# View process stats
+docker top ds-workspace-cpu
+```
+
+## Network Management
+
+### Network Configuration
+```bash
+# View network settings
+docker network inspect bridge
+
+# List container networks
+docker network ls
+
+# View container IP
+docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ds-workspace-cpu
+```
+
+### Port Management
+```bash
+# View port mappings
+docker port ds-workspace-cpu
+docker port ds-workspace-gpu
+
+# Check port usage
+sudo lsof -i :8888
+sudo lsof -i :8889
+```
+
+## Security Commands
+
+### Container Security
+```bash
+# View security options
+docker inspect --format='{{.HostConfig.SecurityOpt}}' ds-workspace-cpu
+
+# View capabilities
+docker inspect --format='{{.HostConfig.CapAdd}}' ds-workspace-cpu
+docker inspect --format='{{.HostConfig.CapDrop}}' ds-workspace-cpu
+
+# Check read-only status
+docker inspect --format='{{.HostConfig.ReadonlyRootfs}}' ds-workspace-cpu
+```
+
+### User Management
+```bash
+# View container user
+docker exec ds-workspace-cpu id
+
+# Run command as root (if needed)
+docker exec -u 0 ds-workspace-cpu id
+
+# View user mapping
+docker inspect --format='{{.HostConfig.UsernsMode}}' ds-workspace-cpu
+```
+
+## Maintenance Commands
+
+### Image Maintenance
+```bash
+# Remove unused images
+docker image prune -a
+
+# Remove dangling images
+docker image prune
+
+# Clean build cache
+docker builder prune
+```
+
+### Container Cleanup
+```bash
+# Remove stopped containers
+docker container prune
+
+# Remove unused volumes
+docker volume prune
+
+# Full system cleanup
+docker system prune -a
+```
+
+### Log Rotation
+```bash
+# View log size
+du -h $(docker inspect --format='{{.LogPath}}' ds-workspace-cpu)
+
+# Rotate container logs
+docker container restart ds-workspace-cpu
+```
+
+## Troubleshooting Commands
+
+### Debug Information
+```bash
+# View container events
+docker events --filter container=ds-workspace-cpu
+
+# Export container config
+docker inspect ds-workspace-cpu > container_config.json
+
+# View container processes
+docker top ds-workspace-cpu -eo pid,ppid,cmd
+```
+
+### Resource Issues
+```bash
+# Check system resources
+docker info
+
+# View detailed stats
+docker stats --no-stream --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}"
+
+# Monitor GPU issues
+nvidia-smi -l 1
+```
+
+### Network Debug
+```bash
+# Test container networking
+docker exec ds-workspace-cpu ping -c 4 8.8.8.8
+
+# View DNS config
+docker exec ds-workspace-cpu cat /etc/resolv.conf
+
+# Check network connectivity
+docker exec ds-workspace-cpu curl -v https://www.google.com
+```
+
+## Environment Variables
+
+### View Variables
+```bash
+# List all variables
+docker exec ds-workspace-cpu env
+
+# View specific variable
+docker exec ds-workspace-cpu bash -c 'echo $NVIDIA_GPU_MEM_FRACTION'
+```
+
+### Update Variables
+```bash
+# Update single variable
+docker exec -e NVIDIA_GPU_MEM_FRACTION=0.6 ds-workspace-gpu nvidia-smi
+
+# Load from file
+docker compose --env-file .env up -d
+```
+
+## Volume Management
+
+### Volume Commands
+```bash
+# List volumes
+docker volume ls
+
+# Inspect volume
+docker volume inspect jupyter_logs_cpu
+
+# Clean unused volumes
+docker volume prune
+```
+
+### Backup Commands
+```bash
+# Backup volume data
+docker run --rm -v jupyter_logs_cpu:/source -v $(pwd):/backup ubuntu tar czf /backup/logs_backup.tar.gz -C /source .
+
+# Restore volume data
+docker run --rm -v jupyter_logs_cpu:/source -v $(pwd):/backup ubuntu bash -c "cd /source && tar xzf /backup/logs_backup.tar.gz"
+```
+
+## Container Management
 
 ### Container Logs
 ```bash
@@ -91,12 +340,6 @@ docker logs ds-workspace-cpu > cpu_container.log 2>&1
 
 ### Container Shell Access
 ```bash
-# Access CPU container shell
-docker exec -it ds-workspace-cpu bash
-
-# Access GPU container shell
-docker exec -it ds-workspace-gpu bash
-
 # Run specific command in container
 docker exec ds-workspace-gpu nvidia-smi
 docker exec ds-workspace-gpu python -c "import torch; print('GPU available:', torch.cuda.is_available())"
@@ -109,9 +352,6 @@ docker exec -it -u root ds-workspace-cpu bash
 
 ### System Cleanup
 ```bash
-# Remove all unused resources
-docker system prune -a --volumes
-
 # Remove specific resources
 docker container prune  # Remove stopped containers
 docker image prune -a   # Remove all unused images
@@ -165,14 +405,8 @@ docker compose --env-file .env down --rmi all --volumes --remove-orphans
 
 ### Resource Usage
 ```bash
-# Show running containers
-docker ps
-docker ps -a  # Show all containers
-
 # Show container resource usage
 docker stats
-docker stats ds-workspace-cpu
-docker stats ds-workspace-gpu
 
 # Show detailed container info
 docker inspect ds-workspace-cpu
@@ -200,9 +434,6 @@ docker inspect --format='{{range .State.Health.Log}}{{.Start}}: {{.ExitCode}}{{p
 
 ### GPU Specific Commands
 ```bash
-# Check GPU status in container
-docker exec ds-workspace-gpu nvidia-smi
-
 # Monitor GPU usage
 docker exec ds-workspace-gpu nvidia-smi -l 1
 
