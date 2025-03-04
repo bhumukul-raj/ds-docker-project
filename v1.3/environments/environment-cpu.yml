@@ -1,0 +1,64 @@
+name: ds-cpu
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.9
+  # Core Data Science
+  - numpy=1.24.3
+  - pandas=1.5.3
+  - scipy=1.11.2
+  - scikit-learn=1.3.0
+  # Visualization
+  - matplotlib=3.7.2
+  - seaborn=0.12.2
+  - plotly=5.16.1
+  # Machine Learning
+  - xgboost=1.7.6
+  - lightgbm=4.0.0
+  # Jupyter Environment
+  - jupyterlab=4.0.7
+  - jupyter_client=8.3.1
+  - jupyter_core=5.3.2
+  - ipykernel=6.25.2
+  - ipywidgets=8.1.1
+  - notebook=7.0.4
+  - jupyter-server-proxy=4.1.0
+  # Development Tools
+  - pip=23.2.1
+  - git-lfs=3.4.0
+  - pre-commit=3.3.3
+  - mypy=1.5.1
+  - flake8=6.1.0
+  - black=23.7.0
+  - isort=5.12.0
+  - pytest=7.4.0
+  # Distributed Computing
+  - dask=2023.3.2
+  - distributed=2023.3.2.1
+  # Node.js for JupyterLab
+  - nodejs=20
+  # Additional pip packages
+  - pip:
+    # Core tools
+    - databricks-cli==0.18.0
+    - opencv-python-headless==4.8.0.76
+    - wandb==0.15.8
+    # JupyterLab core extensions
+    - jupyter-resource-usage==0.6.0
+    - jupyterlab-system-monitor==0.8.0
+    # Documentation
+    - nbconvert==7.2.9
+    # LSP
+    - "python-lsp-server[all]==1.7.4"
+    - jupyterlab-lsp==4.2.0
+    # JupyterLab extensions
+    - jupyterlab-drawio==0.8.0
+    - jupyterlab-execute-time==2.3.1
+    - lckr-jupyterlab-variableinspector==3.0.9
+    # Code quality
+    - jupyterlab-code-formatter==1.5.3
+    - jupyterlab-spellchecker==0.7.3
+    # Additional functionality
+    - jupyterlab-latex==3.1.0
+    - jupyterlab-dash==0.1.0a3 

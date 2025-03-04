@@ -1,0 +1,153 @@
+x-bake:
+  args:
+    BUILDKIT_INLINE_CACHE: 1
+  resources:
+    memory: 12g
+    swap: 2g
+    cpus: 9
+    cpu-quota: 900000
+
+services:
+  jupyter-cpu:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.cpu
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+      x-bake:
+        platforms:
+          - linux/amd64
+        cache-from:
+          - type=local,src=.buildx-cache
+        cache-to:
+          - type=local,dest=.buildx-cache
+        resources:
+          cpu-quota: 900000    # 9 CPUs (100000 = 1 CPU)
+          memory: 12G          # 12GB RAM for build (75% of 16GB)
+          swap: 2G             # 2GB swap
+    image: bhumukulrajds/ds-workspace-cpu:1.3
+    container_name: ds-workspace-cpu
+    network_mode: host
+    labels:
+      maintainer: "bhumukulraj.ds@gmail.com"
+      version: "1.2"
+      description: "Data Science Development Environment - CPU Version"
+    deploy:
+      resources:
+        limits:
+          cpus: '9'           # 75% of available CPUs
+          memory: ${CONTAINER_MEMORY_LIMIT:-12}G
+        reservations:
+          cpus: '2'           # Minimum 2 CPUs
+          memory: ${CONTAINER_MEMORY_RESERVATION:-4}G
+    ports:
+      - "8888:8888"
+    volumes:
+      - type: bind
+        source: /home/${USER}/Desktop/dsi-host-workspace/projects
+        target: /workspace/projects
+      - type: bind
+        source: /home/${USER}/Desktop/dsi-host-workspace/datasets
+        target: /workspace/datasets
+      - type: bind
+        source: /home/${USER}/Desktop/dsi-host-workspace/logs
+        target: /workspace/logs
+      - type: bind
+        source: ${HOST_WORKSPACE_DIR}/config/jupyter
+        target: /home/ds-user-ds/.jupyter
+    environment:
+      - USE_GPU=false
+      - TZ=${TZ:-UTC}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"
+    user: "1000:1000"
+    healthcheck:
+      test: ["CMD-SHELL", "ps aux | grep jupyter-lab > /dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+
+  jupyter-gpu:
+    image: bhumukulrajds/ds-workspace-gpu:1.3
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.gpu
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+      x-bake:
+        platforms:
+          - linux/amd64
+        cache-from:
+          - type=local,src=.buildx-cache
+        cache-to:
+          - type=local,dest=.buildx-cache
+        resources:
+          cpu-quota: 900000    # 9 CPUs (100000 = 1 CPU)
+          memory: 12G          # 12GB RAM for build (75% of 16GB)
+          swap: 2G             # 2GB swap
+    container_name: ds-workspace-gpu
+    runtime: nvidia
+    labels:
+      maintainer: "bhumukulraj.ds@gmail.com"
+      version: "1.2"
+      description: "Data Science Development Environment - GPU Version"
+    deploy:
+      resources:
+        limits:
+          cpus: '9'           # 75% of available CPUs
+          memory: ${CONTAINER_MEMORY_LIMIT:-12}G
+        reservations:
+          cpus: '2'           # Minimum 2 CPUs
+          memory: ${CONTAINER_MEMORY_RESERVATION:-4}G
+    ports:
+      - "8889:8888"          # JupyterLab on different port to avoid conflict
+    volumes:
+      - type: bind
+        source: /home/${USER}/Desktop/dsi-host-workspace/projects
+        target: /workspace/projects
+      - type: bind
+        source: /home/${USER}/Desktop/dsi-host-workspace/datasets
+        target: /workspace/datasets
+      - type: bind
+        source: /home/${USER}/Desktop/dsi-host-workspace/logs
+        target: /workspace/logs
+      - /tmp/.X11-unix:/tmp/.X11-unix:ro  # For GUI applications
+      - type: bind
+        source: ${HOST_WORKSPACE_DIR}/config/jupyter
+        target: /home/ds-user-ds/.jupyter
+    environment:
+      - USE_GPU=true
+      - TZ=${TZ:-UTC}
+      # GPU-specific environment variables
+      - NVIDIA_VISIBLE_DEVICES=0
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics,display
+      - NVIDIA_REQUIRE_CUDA=cuda>=11.8
+      - NVIDIA_MEM_MAX_PERCENT=75
+      - NVIDIA_GPU_MEM_FRACTION=0.75
+      - CUDA_VISIBLE_DEVICES=0
+      - DISPLAY=${DISPLAY:-:0}  # For GUI applications
+      - QT_XCB_GL_INTEGRATION=none  # Fix for Qt error
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"
+    user: "1000:1000"
+    healthcheck:
+      test: ["CMD-SHELL", "nvidia-smi && ps aux | grep jupyter-lab > /dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+
+volumes:
+  jupyter_logs_cpu:
+    driver: local
+  jupyter_logs_gpu:
+    driver: local

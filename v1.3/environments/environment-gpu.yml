@@ -1,0 +1,76 @@
+name: ds-gpu
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.9
+  # Core Data Science
+  - numpy=1.24.3
+  - pandas=1.5.3
+  - scipy=1.11.2
+  - scikit-learn=1.3.0
+  # Visualization
+  - matplotlib=3.7.2
+  - seaborn=0.12.2
+  - plotly=5.16.1
+  # Machine Learning
+  - xgboost=1.7.6
+  - lightgbm=4.0.0
+  # Jupyter Environment
+  - jupyterlab=3.6.5
+  - jupyter_client=7.4.9
+  - jupyter_core=4.12.0
+  - ipykernel=6.22.0
+  - ipywidgets=8.0.7
+  - notebook=6.5.5
+  - jupyter-server-proxy=4.1.0
+  - jupyterlab-git=0.41.0
+  # Development Tools
+  - pip=23.2.1
+  - git-lfs=3.4.0
+  - pre-commit=3.3.3
+  - pytest=7.4.0
+  # GPU Support
+  - cudatoolkit=11.8
+  - cudnn=8.9.2
+  - nccl=2.18.3
+  # Distributed Computing
+  - dask=2023.3.2
+  - distributed=2023.3.2.1
+  - dask-cuda=23.6.0
+  # Node.js for JupyterLab
+  - nodejs=20
+  # Additional pip packages
+  - pip:
+    # Core tools
+    - databricks-cli==0.18.0
+    - opencv-python-headless==4.8.0.76
+    - wandb==0.15.8
+    # JupyterLab core extensions
+    - jupyter-resource-usage==0.6.0
+    - jupyterlab-system-monitor==0.8.0
+    # Documentation
+    - nbconvert==7.2.9
+    # LSP
+    - "python-lsp-server[all]==1.7.4"
+    - jupyterlab-lsp==4.2.0
+    # JupyterLab extensions
+    - jupyterlab-drawio==0.8.0
+    - jupyterlab-execute-time==2.3.1
+    - lckr-jupyterlab-variableinspector==3.0.9
+    # Code quality
+    - jupyterlab-code-formatter==1.5.3
+    - jupyterlab-spellchecker==0.7.3
+    # Additional functionality
+    - jupyterlab-latex==3.1.0
+    - jupyterlab-dash==0.1.0a3
+    # GPU-specific packages
+    - --extra-index-url https://download.pytorch.org/whl/cu118
+    - torch==2.0.1
+    - torchvision==0.15.2
+    - torchaudio==2.0.2
+    - tensorflow==2.13.0
+    - cupy-cuda11x==12.2.0
+    - nvidia-ml-py 
