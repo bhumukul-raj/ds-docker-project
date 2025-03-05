@@ -32,9 +32,80 @@ The GPU version of our Data Science environment is optimized for deep learning a
 - Fast network connection
 - Docker Compose v2.0+
 
+## NVIDIA Container Toolkit Setup
+
+The NVIDIA Container Toolkit is required to use GPUs with Docker containers. Follow these steps to set it up:
+
+### 1. Install NVIDIA Container Toolkit
+```bash
+# Add NVIDIA Container Toolkit repository GPG key
+curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | \
+    sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+
+# Add NVIDIA Container Toolkit repository
+curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+    sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+    sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+
+# Update package list and install
+sudo apt-get update
+sudo apt-get install -y nvidia-container-toolkit
+```
+
+### 2. Configure Docker Runtime
+```bash
+# Configure Docker to use NVIDIA runtime
+sudo nvidia-ctk runtime configure --runtime=docker
+
+# Restart Docker daemon to apply changes
+sudo systemctl restart docker
+```
+
+### 3. Verify Installation
+```bash
+# Check NVIDIA driver
+nvidia-smi
+
+# Verify Docker NVIDIA runtime
+docker info | grep -i runtime
+
+# Test with a simple CUDA container
+docker run --rm --gpus all nvidia/cuda:11.8.0-base-ubuntu22.04 nvidia-smi
+```
+
+### Common Issues
+1. **Runtime not found error**: If you see "unknown runtime: nvidia" error, make sure you've:
+   - Installed NVIDIA Container Toolkit
+   - Configured Docker runtime
+   - Restarted Docker daemon
+
+2. **GPU not detected**: Verify that:
+   - NVIDIA drivers are installed: `nvidia-smi`
+   - Docker has GPU access: `docker info | grep -i runtime`
+   - Container has GPU capabilities enabled in docker-compose.yml
+
+3. **Permission issues**: Ensure your user is in the docker group:
+   ```bash
+   sudo usermod -aG docker $USER
+   newgrp docker
+   ```
+
 ## Quick Start
 
-### 1. Setup Environment
+### 1. Download Setup Scripts
+```bash
+# Create scripts directory
+mkdir -p scripts
+
+# Download setup scripts
+curl -o scripts/setup_host.sh https://raw.githubusercontent.com/bhumukul-raj/ds-docker-project/refs/heads/main/v1.3/scripts/setup_host.sh
+curl -o scripts/setup_conf.sh https://raw.githubusercontent.com/bhumukul-raj/ds-docker-project/refs/heads/main/v1.3/scripts/setup_conf.sh
+
+# Make scripts executable
+chmod +x scripts/setup_host.sh scripts/setup_conf.sh
+```
+
+### 2. Setup Environment
 ```bash
 # Run setup scripts
 bash scripts/setup_host.sh
@@ -44,7 +115,7 @@ bash scripts/setup_conf.sh
 nvidia-smi
 ```
 
-### 2. Start Container
+### 3. Start Container
 ```bash
 cd ${HOME}/Desktop/dsi-host-workspace/config
 docker compose --env-file .env up -d jupyter-gpu
@@ -52,7 +123,7 @@ docker compose --env-file .env up -d jupyter-gpu
 # Access JupyterLab at: http://localhost:8889
 ```
 
-### 3. Verify Setup
+### 4. Verify Setup
 ```bash
 # Check container status
 docker ps | grep ds-workspace-gpu

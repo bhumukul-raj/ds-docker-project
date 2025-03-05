@@ -26,7 +26,20 @@
 
 ## Quick Start
 
-### 1. Setup Environment
+### 1. Download Setup Scripts
+```bash
+# Create scripts directory
+mkdir -p scripts
+
+# Download setup scripts
+curl -o scripts/setup_host.sh https://raw.githubusercontent.com/bhumukul-raj/ds-docker-project/refs/heads/main/v1.3/scripts/setup_host.sh
+curl -o scripts/setup_conf.sh https://raw.githubusercontent.com/bhumukul-raj/ds-docker-project/refs/heads/main/v1.3/scripts/setup_conf.sh
+
+# Make scripts executable
+chmod +x scripts/setup_host.sh scripts/setup_conf.sh
+```
+
+### 2. Setup Environment
 ```bash
 # Run setup scripts
 bash scripts/setup_host.sh
@@ -36,7 +49,7 @@ bash scripts/setup_conf.sh
 ls -la ${HOME}/Desktop/dsi-host-workspace/config
 ```
 
-### 2. Start Container
+### 3. Start Container
 ```bash
 cd ${HOME}/Desktop/dsi-host-workspace/config
 docker compose --env-file .env up -d jupyter-cpu
@@ -44,7 +57,7 @@ docker compose --env-file .env up -d jupyter-cpu
 # Access JupyterLab at: http://localhost:8888
 ```
 
-### 3. Verify Setup
+### 4. Verify Setup
 ```bash
 # Check container status
 docker ps | grep ds-workspace-cpu

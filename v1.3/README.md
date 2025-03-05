@@ -45,7 +45,20 @@ A comprehensive Docker-based development environment for data science, with sepa
 
 ## Quick Start
 
-### 1. Initial Setup
+### 1. Download Setup Scripts
+```bash
+# Create scripts directory
+mkdir -p scripts
+
+# Download setup scripts
+curl -o scripts/setup_host.sh https://raw.githubusercontent.com/bhumukul-raj/ds-docker-project/refs/heads/main/v1.3/scripts/setup_host.sh
+curl -o scripts/setup_conf.sh https://raw.githubusercontent.com/bhumukul-raj/ds-docker-project/refs/heads/main/v1.3/scripts/setup_conf.sh
+
+# Make scripts executable
+chmod +x scripts/setup_host.sh scripts/setup_conf.sh
+```
+
+### 2. Initial Setup
 ```bash
 # Create workspace directories
 bash scripts/setup_host.sh
@@ -54,13 +67,31 @@ bash scripts/setup_host.sh
 bash scripts/setup_conf.sh
 ```
 
-### 2. Environment Configuration
+### 2. GPU Setup (Skip for CPU-only usage)
+```bash
+# Install NVIDIA Container Toolkit
+curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+    sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+    sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+sudo apt-get update
+sudo apt-get install -y nvidia-container-toolkit
+
+# Configure Docker to use NVIDIA runtime
+sudo nvidia-ctk runtime configure --runtime=docker
+sudo systemctl restart docker
+
+# Verify GPU setup
+nvidia-smi
+```
+
+### 3. Environment Configuration
 The setup scripts will create:
 - Workspace directory at: ${HOME}/Desktop/dsi-host-workspace
 - Configuration files in: ${HOME}/Desktop/dsi-host-workspace/config
 - Jupyter password in: ${HOME}/Desktop/dsi-host-workspace/config/jupyter/jupyter_password.txt
 
-### 3. Start Services
+### 4. Start Services
 
 #### CPU Version
 ```bash
