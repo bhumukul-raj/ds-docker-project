@@ -180,7 +180,7 @@ generate_jupyter_password() {
         # Generate password hash
         local password_hash=$(echo -n "${password}${salt}" | openssl dgst -sha1 | cut -d' ' -f2)
         
-        # Create config with the hash
+        # Create config with the hash and extension settings
         cat > "${HOME}/.jupyter/jupyter_server_config.json" << EOF
 {
   "ServerApp": {
@@ -195,6 +195,23 @@ generate_jupyter_password() {
     "disable_check_xsrf": false,
     "terminado_settings": {
       "shell_command": ["/bin/bash"]
+    }
+  },
+  "LanguageServerManager": {
+    "enabled": true
+  },
+  "LSPExtension": {
+    "language_servers": {
+      "pylsp": {
+        "serverSettings": {
+          "pylsp.plugins.jedi_completion.enabled": true,
+          "pylsp.plugins.jedi_definition.enabled": true,
+          "pylsp.plugins.jedi_hover.enabled": true,
+          "pylsp.plugins.jedi_references.enabled": true,
+          "pylsp.plugins.jedi_signature_help.enabled": true,
+          "pylsp.plugins.jedi_symbols.enabled": true
+        }
+      }
     }
   }
 }

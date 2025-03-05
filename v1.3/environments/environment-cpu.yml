@@ -4,6 +4,8 @@ channels:
   - defaults
 dependencies:
   - python=3.9
+  - pip
+  - notebook
   # Core Data Science
   - numpy=1.24.3
   - pandas=1.5.3
@@ -22,10 +24,8 @@ dependencies:
   - jupyter_core=5.3.2
   - ipykernel=6.25.2
   - ipywidgets=8.1.1
-  - notebook=7.0.4
   - jupyter-server-proxy=4.1.0
   # Development Tools
-  - pip=23.2.1
   - git-lfs=3.4.0
   - pre-commit=3.3.3
   - mypy=1.5.1
@@ -41,17 +41,23 @@ dependencies:
   # Additional pip packages
   - pip:
     # Core tools
-    - databricks-cli==0.18.0
     - opencv-python-headless==4.8.0.76
     - wandb==0.15.8
+    - streamlit==1.27.0
+    - streamlit-jupyter==0.2.1
     # JupyterLab core extensions
     - jupyter-resource-usage==0.6.0
     - jupyterlab-system-monitor==0.8.0
     # Documentation
     - nbconvert==7.2.9
-    # LSP
+    # LSP and Code Intelligence
     - "python-lsp-server[all]==1.7.4"
     - jupyterlab-lsp==4.2.0
+    - jedi-language-server==0.40.0
+    - jupyter-lsp==2.2.0
+    # Code Suggestions
+    - jupyter-tabnine==1.2.3  # AI-powered code completion
+    - jupyterlab-code-snippets==2.2.1
     # JupyterLab extensions
     - jupyterlab-drawio==0.8.0
     - jupyterlab-execute-time==2.3.1

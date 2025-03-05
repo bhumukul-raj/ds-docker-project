@@ -1,5 +1,12 @@
 # CPU Environment Overview
 
+## Image Details
+
+- **Base Image**: ubuntu:22.04
+- **Image Name**: bhumukulrajds/ds-workspace-cpu
+- **Version**: 1.3
+- **Python Version**: 3.9
+
 ## Resource Requirements
 
 ### Minimum Requirements
@@ -17,6 +24,75 @@
 - Docker Compose v2.0+
 - Fast network connection
 
+## Quick Start
+
+### 1. Setup Environment
+```bash
+# Run setup scripts
+bash scripts/setup_host.sh
+bash scripts/setup_conf.sh
+
+# Verify setup
+ls -la ${HOME}/Desktop/dsi-host-workspace/config
+```
+
+### 2. Start Container
+```bash
+cd ${HOME}/Desktop/dsi-host-workspace/config
+docker compose --env-file .env up -d jupyter-cpu
+
+# Access JupyterLab at: http://localhost:8888
+```
+
+### 3. Verify Setup
+```bash
+# Check container status
+docker ps | grep ds-workspace-cpu
+
+# View logs
+docker logs ds-workspace-cpu
+
+# Check health
+docker inspect --format='{{.State.Health.Status}}' ds-workspace-cpu
+```
+
+## Core Components
+
+### Data Science Stack
+- NumPy 1.24.3
+- Pandas 1.5.3
+- Scipy 1.11.2
+- Scikit-learn 1.3.0
+- Matplotlib 3.7.2
+- Seaborn 0.12.2
+- Plotly 5.16.1
+
+### Machine Learning
+- XGBoost 1.7.6
+- LightGBM 4.0.0
+- Dask 2023.3.2
+- Distributed 2023.3.2.1
+
+### Development Environment
+- JupyterLab 4.0.7
+- Jupyter Extensions:
+  - Resource monitoring
+  - Code formatting
+  - Language server
+  - Variable inspector
+  - Draw.io integration
+  - LaTeX support
+  - System monitor
+  - Execution time
+
+### Development Tools
+- Git with LFS support
+- Black 23.7.0 (formatter)
+- Flake8 6.1.0 (linter)
+- MyPy 1.5.1 (type checker)
+- isort 5.12.0 (import sorter)
+- pytest 7.4.0 (testing)
+
 ## Container Configuration
 
 ### Resource Limits
@@ -24,7 +100,7 @@
 deploy:
   resources:
     limits:
-      cpus: '4'
+      cpus: '9'
       memory: 10G
       pids: 1000
     reservations:
@@ -94,27 +170,61 @@ docker stats ds-workspace-cpu
 docker logs -f ds-workspace-cpu | jq
 ```
 
+## Directory Structure
+```
+${HOME}/Desktop/dsi-host-workspace/
+├── config/
+│   ├── jupyter/          # Jupyter configuration
+│   ├── docker-compose.yml
+│   └── .env
+├── projects/            # Notebooks and code
+├── datasets/           # Read-only data storage
+└── logs/              # Container and application logs
+    ├── jupyter/       # Jupyter logs
+    └── error/         # Error logs
+```
+
+## Environment Variables
+```bash
+# Resource Configuration
+CPU_LIMIT=9
+CPU_RESERVATION=2
+CONTAINER_MEMORY_LIMIT=10
+CONTAINER_MEMORY_RESERVATION=3
+
+# Python Configuration
+PYTHONUNBUFFERED=1
+PYTHONDONTWRITEBYTECODE=1
+PYTHONHASHSEED=random
+PYTHONGC=2
+
+# Container Configuration
+TZ=UTC
+USER_UID=1000
+USER_GID=1000
+```
+
 ## Troubleshooting
 
 ### Common Issues
 
 1. **Container Fails to Start**
-   - Check resource limits
-   - Verify port availability
-   - Check log files
-   - Validate directory permissions
+   - Check resource limits: `docker stats`
+   - Verify port availability: `sudo lsof -i :8888`
+   - Check log files: `docker logs ds-workspace-cpu`
+   - Validate directory permissions: `ls -la ${HOME}/Desktop/dsi-host-workspace`
 
 2. **Performance Issues**
-   - Monitor resource usage
-   - Check process limits
-   - Verify memory allocation
-   - Review garbage collection settings
+   - Monitor resource usage: `docker stats`
+   - Check process limits: `docker top ds-workspace-cpu`
+   - Verify memory allocation: `free -h`
+   - Review garbage collection settings: `docker exec ds-workspace-cpu python3 -c "import gc; print(gc.get_threshold())"`
 
 3. **Network Issues**
-   - Check DNS configuration
-   - Verify bridge network
-   - Validate port mappings
-   - Check network isolation
+   - Check DNS configuration: `docker exec ds-workspace-cpu cat /etc/resolv.conf`
+   - Verify bridge network: `docker network inspect bridge`
+   - Validate port mappings: `docker port ds-workspace-cpu`
+   - Check network isolation: `docker inspect ds-workspace-cpu | grep -i network`
 
 ### Debug Commands
 ```bash
@@ -131,8 +241,8 @@ tail -f ${HOME}/Desktop/dsi-host-workspace/logs/jupyter/entrypoint.error.log
 # Inspect container
 docker inspect ds-workspace-cpu
 
-# Check network
-docker network inspect bridge
+# Check system resources
+bash scripts/validate_environment.sh
 ```
 
 ## Security Features
@@ -161,40 +271,6 @@ docker network inspect bridge
 - Group permissions
 - Volume ownership
 
-## Directory Structure
-```
-${HOME}/Desktop/dsi-host-workspace/
-├── config/
-│   ├── jupyter/          # Jupyter configuration
-│   ├── docker-compose.yml
-│   └── .env
-├── projects/            # Notebooks and code
-├── datasets/           # Read-only data storage
-└── logs/              # Container and application logs
-    ├── jupyter/       # Jupyter logs
-    └── error/         # Error logs
-```
-
-## Environment Variables
-```bash
-# Resource Configuration
-CPU_LIMIT=4
-CPU_RESERVATION=2
-CONTAINER_MEMORY_LIMIT=10G
-CONTAINER_MEMORY_RESERVATION=3G
-
-# Python Configuration
-PYTHONUNBUFFERED=1
-PYTHONDONTWRITEBYTECODE=1
-PYTHONHASHSEED=random
-PYTHONGC=2
-
-# Container Configuration
-TZ=UTC
-USER_UID=1000
-USER_GID=1000
-```
-
 ## Maintenance
 
 ### Regular Tasks
@@ -214,7 +290,7 @@ USER_GID=1000
 ## Support
 
 For issues and support, please:
-1. Check the troubleshooting guide
+1. Check the troubleshooting section above
 2. Review container logs
 3. Monitor resource usage
 4. Contact maintainer at bhumukulraj.ds@gmail.com 

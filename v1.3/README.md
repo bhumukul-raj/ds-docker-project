@@ -45,57 +45,37 @@ A comprehensive Docker-based development environment for data science, with sepa
 
 ## Quick Start
 
-### 1. Clone Repository and Setup
+### 1. Initial Setup
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/ds-docker-project.git
-cd ds-docker-project
-
-# Run setup scripts
+# Create workspace directories
 bash scripts/setup_host.sh
-bash v1.3/scripts/setup_conf.sh
+
+# Generate configuration files
+bash scripts/setup_conf.sh
 ```
 
-### 2. Build Images with BuildKit
-```bash
-# Enable BuildKit for faster builds
-export DOCKER_BUILDKIT=1
+### 2. Environment Configuration
+The setup scripts will create:
+- Workspace directory at: ${HOME}/Desktop/dsi-host-workspace
+- Configuration files in: ${HOME}/Desktop/dsi-host-workspace/config
+- Jupyter password in: ${HOME}/Desktop/dsi-host-workspace/config/jupyter/jupyter_password.txt
 
-# Build CPU image
-cd ${HOME}/Desktop/dsi-host-workspace/config
-docker compose --env-file .env build jupyter-cpu
-# Or pull from Docker Hub
-docker pull bhumukulrajds/ds-workspace-cpu:1.3
-
-# Build GPU image (if needed)
-docker compose --env-file .env build jupyter-gpu
-# Or pull from Docker Hub
-docker pull bhumukulrajds/ds-workspace-gpu:1.3
-```
-
-### 3. Start Containers
+### 3. Start Services
 
 #### CPU Version
 ```bash
-# Start CPU container
+cd ${HOME}/Desktop/dsi-host-workspace/config
 docker compose --env-file .env up -d jupyter-cpu
 
-# Access at:
-# - JupyterLab: http://localhost:8888/lab
+# Access JupyterLab at: http://localhost:8888
 ```
 
 #### GPU Version
 ```bash
-# Start GPU container
+cd ${HOME}/Desktop/dsi-host-workspace/config
 docker compose --env-file .env up -d jupyter-gpu
 
-# Access at:
-# - JupyterLab: http://localhost:8889/lab
-```
-
-The Jupyter password can be found in:
-```bash
-cat ${HOME}/Desktop/dsi-host-workspace/config/jupyter/jupyter_password.txt
+# Access JupyterLab at: http://localhost:8889
 ```
 
 ## Environment Details
@@ -110,55 +90,15 @@ cat ${HOME}/Desktop/dsi-host-workspace/config/jupyter/jupyter_password.txt
 - Scikit-learn 1.3.0
 - XGBoost 1.7.6
 - LightGBM 4.0.0
+- Dask 2023.3.2
 
 #### GPU Environment (Additional)
 - CUDA 11.8
 - cuDNN 8.9.2
 - PyTorch 2.0.1+cu118
-- TensorFlow 2.10.0
+- TensorFlow 2.13.0
 - CuPy 12.2.0
-- NVIDIA Container Runtime
-- GPU Memory Management:
-  - Memory Fraction: 0.6 (60% of VRAM)
-  - Shared Memory: 2GB
-  - Memory Max Percent: 75%
-
-### Security Features
-- Read-only root filesystem
-- No new privileges restriction
-- Dropped capabilities (minimal set required)
-- AppArmor profile enabled
-- User namespace remapping
-- Network isolation (bridge mode)
-- Read-only dataset mounts
-
-### Build Optimizations
-- Multi-stage builds for smaller images
-- BuildKit caching enabled
-- Layer optimization
-- Conditional package installation
-- Resource-aware building
-
-### Development Tools
-- Git with LFS support
-- JupyterLab Extensions:
-  - Git integration
-  - Resource monitoring
-  - Code formatting
-  - Language server
-  - Variable inspector
-  - System monitor
-  - Execution time
-  - LaTeX support
-  - Draw.io integration
-
-### Logging and Monitoring
-- Structured JSON logging
-- Log rotation and compression
-- Separate error logs
-- Resource usage metrics
-- GPU metrics (for GPU version)
-- Health checks with auto-recovery
+- Dask-CUDA 23.6.0
 
 ### Directory Structure
 ```
@@ -174,6 +114,22 @@ ${HOME}/Desktop/dsi-host-workspace/
     └── error/         # Error logs
 ```
 
+### Security Features
+- Read-only root filesystem
+- No new privileges restriction
+- Dropped capabilities (minimal set)
+- AppArmor profile enabled
+- User namespace remapping
+- Network isolation (bridge mode)
+- Read-only dataset mounts
+
+### Resource Management
+- CPU limits configurable in .env
+- Memory limits configurable in .env
+- GPU memory fraction: 0.6 (60% of VRAM)
+- Container health monitoring
+- Resource usage metrics
+
 ## Usage Guide
 
 ### Basic Operations
@@ -182,13 +138,10 @@ ${HOME}/Desktop/dsi-host-workspace/
 ```bash
 cd ${HOME}/Desktop/dsi-host-workspace/config
 
-# Start both CPU and GPU
-docker compose --env-file .env up -d
-
-# Start CPU only
+# Start CPU container
 docker compose --env-file .env up -d jupyter-cpu
 
-# Start GPU only
+# Start GPU container
 docker compose --env-file .env up -d jupyter-gpu
 ```
 
@@ -203,25 +156,25 @@ docker compose --env-file .env stop jupyter-cpu  # or jupyter-gpu
 
 3. **View Logs:**
 ```bash
-# View container logs (JSON format)
+# View container logs
 docker logs ds-workspace-cpu  # or ds-workspace-gpu
 
 # View Jupyter logs
-cat ${HOME}/Desktop/dsi-host-workspace/logs/jupyter/jupyter.log
+tail -f ${HOME}/Desktop/dsi-host-workspace/logs/jupyter/jupyter.log
 
 # View error logs
-cat ${HOME}/Desktop/dsi-host-workspace/logs/jupyter/entrypoint.error.log
+tail -f ${HOME}/Desktop/dsi-host-workspace/logs/jupyter/entrypoint.error.log
 ```
 
 ### Resource Management
 
-1. **CPU Resource Limits:**
+1. **CPU Resources:**
 ```bash
 # View CPU usage
 docker stats ds-workspace-cpu
 
-# Adjust CPU limits in .env:
-CPU_LIMIT=4
+# Configure in .env:
+CPU_LIMIT=9
 CPU_RESERVATION=2
 ```
 
@@ -230,138 +183,50 @@ CPU_RESERVATION=2
 # View memory usage
 docker stats ds-workspace-cpu
 
-# Adjust memory limits in .env:
-CONTAINER_MEMORY_LIMIT=10G
-CONTAINER_MEMORY_RESERVATION=3G
+# Configure in .env:
+CONTAINER_MEMORY_LIMIT=10
+CONTAINER_MEMORY_RESERVATION=3
 ```
 
-3. **GPU Resource Management:**
+3. **GPU Resources:**
 ```bash
 # View GPU status
 docker exec ds-workspace-gpu nvidia-smi
 
-# Adjust GPU memory fraction in .env:
+# Configure in .env:
 NVIDIA_GPU_MEM_FRACTION=0.6
+NVIDIA_MEM_MAX_PERCENT=75
 ```
-
-### Health Checks
-
-1. **Container Health:**
-```bash
-# Check container health
-docker inspect --format='{{.State.Health.Status}}' ds-workspace-cpu
-
-# View health check logs
-docker inspect --format='{{json .State.Health}}' ds-workspace-cpu | jq
-```
-
-2. **GPU Health:**
-```bash
-# Check GPU health
-docker exec ds-workspace-gpu nvidia-smi
-
-# Verify PyTorch GPU access
-docker exec ds-workspace-gpu python3 -c 'import torch; print(torch.cuda.is_available())'
-```
-
-## Security Features
-
-### Container Security
-1. **Read-only Filesystem:**
-   - Root filesystem is read-only
-   - Only specific directories are writable
-   - Datasets mounted as read-only
-
-2. **Capability Restrictions:**
-   - All capabilities dropped by default
-   - Only essential capabilities added:
-     - CHOWN
-     - SETUID
-     - SETGID
-     - NET_BIND_SERVICE
-
-3. **Network Security:**
-   - Bridge network mode
-   - DNS configuration
-   - Port exposure limited to necessary services
-
-4. **User Security:**
-   - Non-root user execution
-   - User namespace remapping
-   - No privilege escalation
 
 ## Troubleshooting
 
-### Common Issues and Solutions
+### Common Issues
 
-1. **Container Fails to Start**
-   - Check container logs
-   - Verify port availability
-   - Check resource limits
-   - Ensure directories exist with correct permissions
+1. **Container Startup Issues:**
+   - Check logs: `docker logs ds-workspace-cpu`
+   - Verify ports: `docker port ds-workspace-cpu`
+   - Check resources: `docker stats`
 
-2. **GPU Issues**
-   - Verify NVIDIA drivers
-   - Check NVIDIA Container Toolkit
-   - Validate CUDA compatibility
-   - Monitor GPU memory usage
-   - Check GPU memory fraction setting
+2. **GPU Issues:**
+   - Verify NVIDIA drivers: `nvidia-smi`
+   - Check CUDA: `docker exec ds-workspace-gpu nvidia-smi -L`
+   - Monitor GPU memory: `nvidia-smi -l 1`
 
-3. **Access Issues**
-   - Confirm ports are not in use
-   - Check Jupyter password file
-   - Verify network mode settings
-   - Check container health status
+3. **Resource Issues:**
+   - Check system resources: `htop`
+   - Monitor container stats: `docker stats`
+   - View process list: `docker top ds-workspace-cpu`
 
-### Quick Fixes
+For more detailed information, check:
+- [CPU Overview](docs/CPU_OVERVIEW.md)
+- [GPU Overview](docs/GPU_OVERVIEW.md)
+- [Docker Commands](docs/DOCKER_COMMANDS.md)
+- [Changelog](docs/CHANGELOG.md)
 
-1. **Reset Environment:**
-```bash
-cd ${HOME}/Desktop/dsi-host-workspace/config
-docker compose --env-file .env down
-docker compose --env-file .env up -d
-```
+## Support
 
-2. **Regenerate Configuration:**
-```bash
-bash ${HOME}/Desktop/ds-docker-project/v1.3/scripts/setup_conf.sh
-```
-
-3. **Clean Workspace:**
-```bash
-# Backup data
-cp -r ${HOME}/Desktop/dsi-host-workspace/projects ~/Desktop/projects_backup
-
-# Reset workspace
-rm -rf ${HOME}/Desktop/dsi-host-workspace/*
-bash ${HOME}/Desktop/ds-docker-project/scripts/setup_host.sh
-bash ${HOME}/Desktop/ds-docker-project/v1.3/scripts/setup_conf.sh
-```
-
-## Common Operations
-
-### Container Management
-```bash
-# View container status
-docker ps -a
-
-# View resource usage
-docker stats ds-workspace-cpu  # or ds-workspace-gpu
-
-# View logs
-docker logs -f --tail=100 ds-workspace-cpu
-```
-
-### Resource Monitoring
-```bash
-# Monitor GPU usage
-watch -n 1 nvidia-smi
-
-# Monitor container resources
-docker stats
-
-# View structured logs
-tail -f ${HOME}/Desktop/dsi-host-workspace/logs/jupyter/entrypoint.log | jq
-```
-
-For more information and updates, visit the project repository or contact the maintainer at bhumukulraj.ds@gmail.com 
+For issues and support, please:
+1. Check the troubleshooting guides
+2. Review container logs
+3. Monitor resource usage
+4. Contact maintainer at bhumukulraj.ds@gmail.com 

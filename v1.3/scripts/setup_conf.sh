@@ -77,13 +77,11 @@ generate_docker_compose() {
     log "Generating docker-compose.yml..."
     
     cat > "$compose_file" << 'EOL'
-version: '3.8'
-
 x-bake:
   args:
     BUILDKIT_INLINE_CACHE: 1
   resources:
-    memory: 12g
+    memory: 10g  # Aligned with service limits
     swap: 2g
     cpus: 9
     cpu-quota: 900000
@@ -97,19 +95,39 @@ services:
         BUILDKIT_INLINE_CACHE: 1
         NB_UID: ${UID:-1000}
         NB_GID: ${GID:-1000}
+      x-bake:
+        platforms:
+          - linux/amd64
+        cache-from:
+          - type=local,src=.buildx-cache
+        cache-to:
+          - type=local,dest=.buildx-cache
+        resources:
+          cpu-quota: 900000
+          memory: 10G
+          swap: 2G
     image: bhumukulrajds/ds-workspace-cpu:1.3
     container_name: ds-workspace-cpu
-    network_mode: host
+    network_mode: "host"
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    userns_mode: "host"
+    labels:
+      maintainer: "bhumukulraj.ds@gmail.com"
+      version: "1.3"
+      description: "Data Science Development Environment - CPU Version"
     deploy:
       resources:
         limits:
-          cpus: '9'
-          memory: ${CONTAINER_MEMORY_LIMIT:-12}G
+          cpus: '${CPU_LIMIT:-4}'
+          memory: ${CONTAINER_MEMORY_LIMIT:-10}G
+          pids: 1000
         reservations:
-          cpus: '2'
-          memory: ${CONTAINER_MEMORY_RESERVATION:-4}G
+          cpus: '${CPU_RESERVATION:-2}'
+          memory: ${CONTAINER_MEMORY_RESERVATION:-3}G
     ports:
-      - "8888:8888"
+      - "127.0.0.1:8888:8888"
     volumes:
       - type: bind
         source: ${HOST_WORKSPACE_DIR}/projects
@@ -126,13 +144,34 @@ services:
     environment:
       - USE_GPU=false
       - TZ=${TZ:-UTC}
+      - PYTHONGC=2
+      - JUPYTER_IP=0.0.0.0
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+        compress: "true"
+        tag: "{{.Name}}"
     user: "${UID:-1000}:${GID:-1000}"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8888/api/status"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 30s
     restart: unless-stopped
+    read_only: false
+    security_opt:
+      - "no-new-privileges:true"
+      - "apparmor:docker-default"
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+      - NET_BIND_SERVICE
 
   jupyter-gpu:
     build:
@@ -142,19 +181,41 @@ services:
         BUILDKIT_INLINE_CACHE: 1
         NB_UID: ${UID:-1000}
         NB_GID: ${GID:-1000}
+      x-bake:
+        platforms:
+          - linux/amd64
+        cache-from:
+          - type=local,src=.buildx-cache
+        cache-to:
+          - type=local,dest=.buildx-cache
+        resources:
+          cpu-quota: 900000
+          memory: 10G
+          swap: 2G
     image: bhumukulrajds/ds-workspace-gpu:1.3
     container_name: ds-workspace-gpu
     runtime: nvidia
+    shm_size: "2g"
+    network_mode: "host"
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    userns_mode: "host"
+    labels:
+      maintainer: "bhumukulraj.ds@gmail.com"
+      version: "1.3"
+      description: "Data Science Development Environment - GPU Version"
     deploy:
       resources:
         limits:
-          cpus: '9'
+          cpus: '${CPU_LIMIT:-4}'
           memory: ${CONTAINER_MEMORY_LIMIT:-12}G
+          pids: 1000
         reservations:
-          cpus: '2'
+          cpus: '${CPU_RESERVATION:-2}'
           memory: ${CONTAINER_MEMORY_RESERVATION:-4}G
     ports:
-      - "8889:8888"
+      - "127.0.0.1:8889:8888"
     volumes:
       - type: bind
         source: ${HOST_WORKSPACE_DIR}/projects
@@ -168,21 +229,52 @@ services:
       - type: bind
         source: ${HOST_WORKSPACE_DIR}/config/jupyter
         target: /home/ds-user-ds/.jupyter
+      - /tmp/.X11-unix:/tmp/.X11-unix:ro
     environment:
       - USE_GPU=true
       - TZ=${TZ:-UTC}
+      - PYTHONGC=2
+      - JUPYTER_IP=0.0.0.0
       - NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES:-0}
       - NVIDIA_DRIVER_CAPABILITIES=${NVIDIA_DRIVER_CAPABILITIES:-compute,utility,graphics,display}
       - NVIDIA_REQUIRE_CUDA=${NVIDIA_REQUIRE_CUDA:-"cuda>=11.8"}
       - NVIDIA_MEM_MAX_PERCENT=${NVIDIA_MEM_MAX_PERCENT:-75}
-      - NVIDIA_GPU_MEM_FRACTION=${NVIDIA_GPU_MEM_FRACTION:-0.75}
+      - NVIDIA_GPU_MEM_FRACTION=${NVIDIA_GPU_MEM_FRACTION:-0.6}
+      - CUDA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES:-0}
+      - DISPLAY=${DISPLAY:-:0}
+      - QT_XCB_GL_INTEGRATION=none
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+        compress: "true"
+        tag: "{{.Name}}"
     user: "${UID:-1000}:${GID:-1000}"
     healthcheck:
-      test: ["CMD", "nvidia-smi && curl -f http://localhost:8888/api/status"]
+      test: ["CMD-SHELL", "timeout 5 nvidia-smi >/dev/null 2>&1 && curl -f http://localhost:8888/api/status"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 30s
     restart: unless-stopped
+    read_only: false
+    security_opt:
+      - "no-new-privileges:true"
+      - "apparmor:docker-default"
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+      - NET_BIND_SERVICE
+
+volumes:
+  jupyter_logs_cpu:
+    driver: local
+  jupyter_logs_gpu:
+    driver: local
 EOL
     
     log "docker-compose.yml generated successfully at: $compose_file"
@@ -200,9 +292,10 @@ generate_env_file() {
     cat > "$env_file" << EOL
 # Required environment variables
 # Host workspace directory (use absolute path)
-HOST_WORKSPACE_DIR=${WORKSPACE_DIR}
+HOST_WORKSPACE_DIR=${HOME}/Desktop/dsi-host-workspace
 
 # User configuration (use current user's UID/GID)
+
 UID=${current_uid}
 GID=${current_gid}
 
@@ -213,16 +306,21 @@ TZ=UTC
 # Container configuration
 COMPOSE_PROJECT_NAME=ds-workspace-v1
 
-# Resource limits (in GB)
-CONTAINER_MEMORY_LIMIT=12
-CONTAINER_MEMORY_RESERVATION=4
+# Resource limits
+CPU_LIMIT=9
+CPU_RESERVATION=2
+CONTAINER_MEMORY_LIMIT=10
+CONTAINER_MEMORY_RESERVATION=3
+
+# Performance tuning
+DASK_NUM_WORKERS=8
 
 # NVIDIA Configuration (for GPU container)
 NVIDIA_VISIBLE_DEVICES=0
 NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics,display
 NVIDIA_REQUIRE_CUDA=cuda>=11.8
 NVIDIA_MEM_MAX_PERCENT=75
-NVIDIA_GPU_MEM_FRACTION=0.75
+NVIDIA_GPU_MEM_FRACTION=0.6  # Reduced to 60% for 4GB GPU
 EOL
     
     log ".env file generated successfully at: $env_file"

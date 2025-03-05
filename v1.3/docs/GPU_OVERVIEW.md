@@ -36,21 +36,20 @@ The GPU version of our Data Science environment is optimized for deep learning a
 
 ### 1. Setup Environment
 ```bash
-# Create workspace directories
-mkdir -p ${HOME}/Desktop/dsi-host-workspace/{projects,logs/jupyter,datasets}
+# Run setup scripts
+bash scripts/setup_host.sh
+bash scripts/setup_conf.sh
 
-# Set permissions
-chmod -R 755 ${HOME}/Desktop/dsi-host-workspace
+# Verify NVIDIA setup
+nvidia-smi
 ```
 
 ### 2. Start Container
 ```bash
-# Build and start
-docker compose --env-file .env build jupyter-gpu
+cd ${HOME}/Desktop/dsi-host-workspace/config
 docker compose --env-file .env up -d jupyter-gpu
 
-# Access services:
-# JupyterLab: http://localhost:8889
+# Access JupyterLab at: http://localhost:8889
 ```
 
 ### 3. Verify Setup
@@ -69,7 +68,7 @@ docker exec ds-workspace-gpu nvidia-smi
 
 ### Deep Learning Stack
 - PyTorch 2.0.1+cu118
-- TensorFlow 2.10.0
+- TensorFlow 2.13.0
 - CuPy 12.2.0
 - NVIDIA CUDA 11.8
 - cuDNN 8.9.2
@@ -93,14 +92,14 @@ docker exec ds-workspace-gpu nvidia-smi
 ### Development Environment
 - JupyterLab 4.0.7
 - Jupyter Extensions:
-  - Git integration
-  - System monitor
+  - Resource monitoring
   - Code formatting
   - Language server
   - Variable inspector
   - Draw.io integration
   - LaTeX support
-- Visual Studio Code Server
+  - System monitor
+  - Execution time
 
 ### Development Tools
 - Git with LFS support
@@ -130,7 +129,7 @@ ${HOME}/Desktop/dsi-host-workspace/
 deploy:
   resources:
     limits:
-      cpus: '4'
+      cpus: '9'
       memory: 12G
     reservations:
       cpus: '2'
@@ -152,13 +151,7 @@ environment:
 ### NVIDIA Runtime
 ```yaml
 runtime: nvidia
-deploy:
-  resources:
-    reservations:
-      devices:
-        - driver: nvidia
-          count: 1
-          capabilities: [gpu]
+shm_size: "2g"
 ```
 
 ## Performance Optimization
@@ -172,8 +165,8 @@ deploy:
 
 ### GPU Optimization
 - Optimized CUDA configuration
-- Memory fraction control
-- Shared memory allocation
+- Memory fraction control (60% of VRAM)
+- Shared memory allocation (2GB)
 - Process scheduling
 - Cache management
 
@@ -228,40 +221,40 @@ docker exec ds-workspace-gpu nvidia-smi --query-gpu=utilization.gpu,memory.used,
 ### Common Issues
 
 1. **GPU Access Issues**
-   - Check NVIDIA driver version
-   - Verify NVIDIA Container Toolkit
-   - Validate CUDA compatibility
-   - Check GPU memory fraction
+   - Check NVIDIA driver version: `nvidia-smi`
+   - Verify NVIDIA Container Toolkit: `docker info | grep -i runtime`
+   - Validate CUDA: `docker exec ds-workspace-gpu nvidia-smi -L`
+   - Check GPU memory: `nvidia-smi -q -d MEMORY`
 
 2. **Performance Issues**
-   - Monitor GPU utilization
-   - Check memory allocation
-   - Verify process limits
-   - Review cache settings
+   - Monitor GPU utilization: `nvidia-smi -l 1`
+   - Check memory allocation: `nvidia-smi -q -d MEMORY`
+   - Verify process limits: `docker stats ds-workspace-gpu`
+   - Review cache settings: `ls -la /workspace/.cache/cuda`
 
 3. **Container Issues**
-   - Check container health
-   - Verify resource limits
-   - Monitor log files
-   - Validate GPU access
+   - Check container health: `docker inspect ds-workspace-gpu`
+   - Verify resource limits: `docker stats`
+   - Monitor log files: `tail -f ${HOME}/Desktop/dsi-host-workspace/logs/jupyter/jupyter.log`
+   - Validate GPU access: `docker exec ds-workspace-gpu python3 -c "import torch; print(torch.cuda.is_available())"` 
 
 ### Debug Commands
 ```bash
 # Check container status
 docker ps -a | grep ds-workspace-gpu
 
-# View GPU status
-nvidia-smi
+# View resource usage
+docker stats ds-workspace-gpu
 
-# Check CUDA
-docker exec ds-workspace-gpu nvidia-smi -L
-
-# View logs
+# Check logs
 tail -f ${HOME}/Desktop/dsi-host-workspace/logs/jupyter/jupyter.log
 tail -f ${HOME}/Desktop/dsi-host-workspace/logs/jupyter/entrypoint.error.log
 
-# Check GPU metrics
-docker exec ds-workspace-gpu nvidia-smi dmon
+# Inspect container
+docker inspect ds-workspace-gpu
+
+# Check GPU
+nvidia-smi -q
 ```
 
 ## Security Features
@@ -314,7 +307,7 @@ NVIDIA_GPU_MEM_FRACTION=0.6
 NVIDIA_MEM_MAX_PERCENT=75
 
 # Resource Configuration
-CPU_LIMIT=4
+CPU_LIMIT=9
 CPU_RESERVATION=2
 CONTAINER_MEMORY_LIMIT=12G
 CONTAINER_MEMORY_RESERVATION=4G
@@ -355,8 +348,8 @@ USER_GID=1000
 
 ## Support
 
-For issues and support, please:
-1. Check the troubleshooting guide
-2. Review container logs
-3. Monitor GPU metrics
+For issues and support:
+1. Check the troubleshooting section above
+2. Review container and GPU logs
+3. Monitor resource usage
 4. Contact maintainer at bhumukulraj.ds@gmail.com 

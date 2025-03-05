@@ -10,7 +10,6 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Configuration
-PROJECT_DIR="/home/${USER}/Desktop/ds-docker-project"
 WORKSPACE_DIR="/home/${USER}/Desktop/dsi-host-workspace"
 
 # Logging functions
@@ -57,9 +56,6 @@ create_workspace() {
 main() {
     log "Starting workspace setup..."
     
-    # Check for existing project directory
-    check_existing_dir "$PROJECT_DIR"
-    
     # Check for existing workspace directory
     check_existing_dir "$WORKSPACE_DIR"
     
@@ -68,8 +64,7 @@ main() {
     
     log "Workspace setup completed successfully!"
     log "Next steps:"
-    log "1. Run: cd ${PROJECT_DIR}/v1.3"
-    log "2. Run: bash scripts/setup_conf.sh"
+    log "1. Run: bash scripts/setup_conf.sh"
 }
 
 main "$@" 
